@@ -3,6 +3,10 @@ import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
 
+// Routes
+import providerRoutes from "./routes/providerRoutes.js";
+import seekerRoutes from "./routes/seekerRoutes.js";
+
 // Load environment variables
 dotenv.config();
 
@@ -21,9 +25,9 @@ app.get("/", (req, res) => {
   res.send("🚀 API is running successfully!");
 });
 
-// Add your routes here
-// import userRoutes from "./routes/userRoutes.js";
-// app.use("/api/users", userRoutes);
+// API Routes
+app.use("/api/providers", providerRoutes);
+app.use("/api/seekers", seekerRoutes);
 
 // Port setup
 const PORT = process.env.PORT || 5000;
