@@ -5,31 +5,25 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Route, Routes } from 'react-router-dom';
 
-import DummyPage from './pages/DummyPage/DummyPage'; 
-
+import DummyPage from './pages/DummyPage/DummyPage';
+import Login from './pages/login/login';
+import Register from './pages/register/register';
+import SeekerDashboard from './pages/SeekerDashboard/SeekerDashboard';
 
 const App = () => {
-  // const location = useLocation();
-  // const noNavbarPaths = ['/', '/register'];
-  // const shouldShowNavbar = !noNavbarPaths.includes(location.pathname);
-
-  // // Optionally hide chatbot on specific routes (e.g., login/register)
-  // const noChatbotPaths = ['/', '/register'];
-  // const shouldShowChatbot = !noChatbotPaths.includes(location.pathname);
-
   return (
     <>
       <ToastContainer />
       <div className="app">
-        
         <Routes>
-
-          <Route path="/" element={<DummyPage />} />
+          <Route path="/dummy" element={<DummyPage />} />
+          <Route path="/" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={<SeekerDashboard />} />
         </Routes>
-        
       </div>
     </>
   );
-}
+};
 
 export default App;

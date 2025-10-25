@@ -14,7 +14,12 @@ const generateToken = (seeker) => {
 // Register Seeker
 exports.registerSeeker = async (req, res) => {
     try {
-        const { userName, email, contactNumber, password, address, location } = req.body;
+        const { userName, email, contactNumber, password, address } = req.body;
+
+        // Validate address fields
+        if (!address || !address.street || !address.city || !address.state || !address.postalCode || !address.country) {
+            return res.status(400).json({ message: 'All address fields are required' });
+        }
 
         let existingSeeker = await Seeker.findOne({ email });
         if (existingSeeker) {
@@ -26,8 +31,7 @@ exports.registerSeeker = async (req, res) => {
             email,
             contactNumber,
             password,
-            address,
-            location
+            address
         });
 
         await seeker.save();
@@ -40,7 +44,7 @@ exports.registerSeeker = async (req, res) => {
         });
     } catch (error) {
         console.error('Register Seeker Error:', error);
-        res.status(500).json({ message: 'Server error during seeker registration' });
+        res.status(500).json({ message: 'Server error during seeker registration', error: error.message });
     }
 };
 
@@ -54,7 +58,7 @@ exports.loginSeeker = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const isMatch = await bcrypt.compare(password, seeker.password);
+        const isMatch = await seeker.comparePassword(password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
@@ -63,7 +67,7 @@ exports.loginSeeker = async (req, res) => {
         res.json({ message: 'Login successful', token, seeker });
     } catch (error) {
         console.error('Login Seeker Error:', error);
-        res.status(500).json({ message: 'Server error during login' });
+        res.status(500).json({ message: 'Server error during login', error: error.message });
     }
 };
 
@@ -76,7 +80,7 @@ exports.getSeekerProfile = async (req, res) => {
         res.json(seeker);
     } catch (error) {
         console.error('Get Seeker Profile Error:', error);
-        res.status(500).json({ message: 'Server error fetching profile' });
+        res.status(500).json({ message: 'Server error fetching profile', error: error.message });
     }
 };
 
@@ -88,6 +92,6 @@ exports.updateSeekerProfile = async (req, res) => {
         res.json({ message: 'Profile updated successfully', seeker });
     } catch (error) {
         console.error('Update Seeker Profile Error:', error);
-        res.status(500).json({ message: 'Server error updating profile' });
+        res.status(500).json({ message: 'Server error updating profile', error: error.message });
     }
 };

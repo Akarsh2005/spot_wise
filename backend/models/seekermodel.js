@@ -26,15 +26,11 @@ const seekerSchema = new mongoose.Schema({
         minlength: 6
     },
     address: {
-        street: { type: String },
-        city: { type: String },
-        state: { type: String },
-        postalCode: { type: String },
-        country: { type: String }
-    },
-    location: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: { type: [Number] } // [longitude, latitude]
+        street: { type: String, required: true },
+        city: { type: String, required: true },
+        state: { type: String, required: true },
+        postalCode: { type: String, required: true },
+        country: { type: String, required: true }
     },
     savedProviders: [{
         type: mongoose.Schema.Types.ObjectId,
@@ -55,9 +51,6 @@ seekerSchema.pre('save', async function (next) {
 seekerSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
-
-// Index for location-based search (optional)
-seekerSchema.index({ location: '2dsphere' });
 
 const Seeker = mongoose.model('Seeker', seekerSchema);
 module.exports = Seeker;
