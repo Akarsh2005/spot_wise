@@ -6,6 +6,7 @@ import cors from "cors";
 // Routes
 import providerRoutes from "./routes/providerRoutes.js";
 import seekerRoutes from "./routes/seekerRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js"; // <-- import booking routes
 
 // Load environment variables
 dotenv.config();
@@ -28,6 +29,7 @@ app.get("/", (req, res) => {
 // API Routes
 app.use("/api/providers", providerRoutes);
 app.use("/api/seekers", seekerRoutes);
+app.use("/api/bookings", bookingRoutes); // <-- use booking routes
 
 // Port setup
 const PORT = process.env.PORT || 5000;
