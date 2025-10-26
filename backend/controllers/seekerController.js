@@ -11,6 +11,8 @@ const generateToken = (seeker) => {
     );
 };
 
+// ------------------- Public Routes -------------------
+
 // Register Seeker
 exports.registerSeeker = async (req, res) => {
     try {
@@ -21,19 +23,12 @@ exports.registerSeeker = async (req, res) => {
             return res.status(400).json({ message: 'All address fields are required' });
         }
 
-        let existingSeeker = await Seeker.findOne({ email });
+        const existingSeeker = await Seeker.findOne({ email });
         if (existingSeeker) {
             return res.status(400).json({ message: 'User already exists' });
         }
 
-        const seeker = new Seeker({
-            userName,
-            email,
-            contactNumber,
-            password,
-            address
-        });
-
+        const seeker = new Seeker({ userName, email, contactNumber, password, address });
         await seeker.save();
 
         const token = generateToken(seeker);
@@ -54,14 +49,10 @@ exports.loginSeeker = async (req, res) => {
         const { email, password } = req.body;
         const seeker = await Seeker.findOne({ email });
 
-        if (!seeker) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
+        if (!seeker) return res.status(400).json({ message: 'Invalid credentials' });
 
         const isMatch = await seeker.comparePassword(password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Invalid credentials' });
-        }
+        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         const token = generateToken(seeker);
         res.json({ message: 'Login successful', token, seeker });
@@ -70,6 +61,8 @@ exports.loginSeeker = async (req, res) => {
         res.status(500).json({ message: 'Server error during login', error: error.message });
     }
 };
+
+// ------------------- Protected Routes -------------------
 
 // Get Seeker Profile
 exports.getSeekerProfile = async (req, res) => {
@@ -93,5 +86,39 @@ exports.updateSeekerProfile = async (req, res) => {
     } catch (error) {
         console.error('Update Seeker Profile Error:', error);
         res.status(500).json({ message: 'Server error updating profile', error: error.message });
+    }
+};
+
+// Add a Provider to savedProviders
+exports.addSavedProvider = async (req, res) => {
+    try {
+        const seeker = await Seeker.findById(req.user.id);
+        const providerId = req.params.providerId;
+
+        if (!seeker.savedProviders.includes(providerId)) {
+            seeker.savedProviders.push(providerId);
+            await seeker.save();
+        }
+
+        res.json({ message: 'Provider added to saved list', savedProviders: seeker.savedProviders });
+    } catch (error) {
+        console.error('Add Saved Provider Error:', error);
+        res.status(500).json({ message: 'Error adding provider', error: error.message });
+    }
+};
+
+// Remove a Provider from savedProviders
+exports.removeSavedProvider = async (req, res) => {
+    try {
+        const seeker = await Seeker.findById(req.user.id);
+        const providerId = req.params.providerId;
+
+        seeker.savedProviders = seeker.savedProviders.filter(id => id.toString() !== providerId);
+        await seeker.save();
+
+        res.json({ message: 'Provider removed from saved list', savedProviders: seeker.savedProviders });
+    } catch (error) {
+        console.error('Remove Saved Provider Error:', error);
+        res.status(500).json({ message: 'Error removing provider', error: error.message });
     }
 };

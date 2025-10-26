@@ -1,24 +1,31 @@
-import express from "express";
-import {
-  createBooking,
-  getSeekerBookings,
-  getProviderBookings,
-  updateBookingStatus,
-  getBookingDetails,
-} from "../controllers/bookingController.js";
-import authMiddleware from "../middleware/auth_middleware.js";
-
+const express = require("express");
 const router = express.Router();
+const bookingController = require("../controllers/bookingController");
+const authMiddleware = require("../middleware/auth_middleware");
+
+// ------------------- Protected Routes -------------------
 
 // Seeker routes
-router.post("/", authMiddleware, createBooking); // create booking
-router.get("/seeker", authMiddleware, getSeekerBookings); // all bookings of seeker
+router.post("/", authMiddleware, bookingController.createBooking);
+router.get("/seeker", authMiddleware, bookingController.getSeekerBookings);
+router.get("/seeker/filter", authMiddleware, bookingController.filterSeekerBookings);
+router.put("/seeker/cancel/:bookingId", authMiddleware, bookingController.cancelBooking);
 
 // Provider routes
-router.get("/provider", authMiddleware, getProviderBookings); // all bookings for provider
-router.put("/:bookingId/status", authMiddleware, updateBookingStatus); // update booking status
+router.get("/provider", authMiddleware, bookingController.getProviderBookings);
+router.get("/provider/filter", authMiddleware, bookingController.filterProviderBookings);
+router.put("/provider/:bookingId", authMiddleware, bookingController.updateBookingStatus);
+router.get('/dashboard-bookings', authMiddleware, bookingController.getProviderDashboardBookings);
 
-// Shared route
-router.get("/:bookingId", authMiddleware, getBookingDetails); // get booking details
 
-export default router;
+// Single booking details (both seeker & provider)
+router.get("/:bookingId", authMiddleware, bookingController.getBookingDetails);
+
+// Submit review (Seeker)
+router.put("/review/:bookingId", authMiddleware, bookingController.submitReview);
+
+// Get provider reviews
+router.get("/provider/:providerId/reviews", bookingController.getProviderReviews);
+
+
+module.exports = router;

@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+const mongoose = require('mongoose');
 
 const bookingSchema = new mongoose.Schema(
   {
@@ -14,7 +14,7 @@ const bookingSchema = new mongoose.Schema(
     },
     serviceType: {
       type: String,
-      required: true, // e.g., 'plumbing', 'electrician'
+      required: true,
     },
     date: {
       type: Date,
@@ -46,14 +46,10 @@ const bookingSchema = new mongoose.Schema(
       default: 0,
     },
   },
-  {
-    timestamps: true, // createdAt and updatedAt
-  }
+  { timestamps: true }
 );
 
-// Optional: index for provider and seeker searches
 bookingSchema.index({ provider: 1, seeker: 1 });
 
 const Booking = mongoose.model("Booking", bookingSchema);
-
-export default Booking;
+module.exports = Booking;

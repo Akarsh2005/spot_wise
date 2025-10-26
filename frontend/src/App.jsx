@@ -9,6 +9,8 @@ import DummyPage from './pages/DummyPage/DummyPage';
 import Login from './pages/login/login';
 import Register from './pages/register/register';
 import SeekerDashboard from './pages/SeekerDashboard/SeekerDashboard';
+import Booking from './pages/Booking/Booking'; // <-- import Booking page
+import MyBookings from './pages/mybooking/mybooking';
 
 const App = () => {
   return (
@@ -20,6 +22,8 @@ const App = () => {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<SeekerDashboard />} />
+          <Route path="/book/:providerId" element={<Booking />} /> {/* <-- booking route */}
+          <Route path="/mybookings" element={<MyBookings />} />
         </Routes>
       </div>
     </>

@@ -33,20 +33,12 @@ const providerSchema = new mongoose.Schema({
         type: Number,
         default: 0
     },
-    location: {
-        type: { type: String, enum: ['Point'], default: 'Point' },
-        coordinates: { type: [Number], required: true } // [longitude, latitude]
-    },
     address: {
         street: { type: String },
         city: { type: String },
         state: { type: String },
         postalCode: { type: String },
         country: { type: String }
-    },
-    rating: {
-        type: Number,
-        default: 0
     },
     status: {
         type: String,
@@ -56,6 +48,19 @@ const providerSchema = new mongoose.Schema({
     verified: {
         type: Boolean,
         default: false
+    },
+    reviews: [
+        {
+            booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
+            seeker: { type: mongoose.Schema.Types.ObjectId, ref: "Seeker" },
+            rating: { type: Number, min: 1, max: 5 },
+            review: { type: String },
+            createdAt: { type: Date, default: Date.now },
+        }
+    ],
+    rating: {
+        type: Number,
+        default: 0
     }
 }, {
     timestamps: true
@@ -73,8 +78,16 @@ providerSchema.methods.comparePassword = function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-// Create index for geolocation queries
-providerSchema.index({ location: '2dsphere' });
+// Method to update average rating
+providerSchema.methods.updateRating = async function () {
+    if (this.reviews.length === 0) {
+        this.rating = 0;
+    } else {
+        const total = this.reviews.reduce((sum, r) => sum + r.rating, 0);
+        this.rating = total / this.reviews.length;
+    }
+    await this.save();
+};
 
 const Provider = mongoose.model('Provider', providerSchema);
 module.exports = Provider;
