@@ -2,14 +2,12 @@ const Booking = require("../models/bookingModel");
 const Provider = require("../models/providermodel");
 const Seeker = require("../models/seekermodel");
 
-// ----------- Seeker Features -----------
-
 // Create Booking
 exports.createBooking = async (req, res) => {
   try {
-    const { providerId, serviceType, date, time, address, totalAmount } = req.body;
+    const { providerId, serviceType, date, time, address, instructions, totalAmount } = req.body;
 
-    if (!providerId || !serviceType || !date || !time) {
+    if (!providerId || !serviceType || !date || !time || !address) {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
@@ -17,12 +15,13 @@ exports.createBooking = async (req, res) => {
     if (!provider) return res.status(404).json({ message: "Provider not found" });
 
     const booking = new Booking({
-      seeker: req.user.id, // comes from auth middleware
+      seeker: req.user.id,
       provider: providerId,
       serviceType,
       date,
       time,
       address,
+      instructions,
       totalAmount,
     });
 
@@ -48,8 +47,6 @@ exports.getSeekerBookings = async (req, res) => {
   }
 };
 
-// ----------- Provider Features -----------
-
 // Get all bookings for provider
 exports.getProviderBookings = async (req, res) => {
     try {
@@ -63,7 +60,7 @@ exports.getProviderBookings = async (req, res) => {
     }
 };
 
-// Get all bookings for logged-in provider
+// Get all bookings for logged-in provider (for dashboard)
 exports.getProviderDashboardBookings = async (req, res) => {
     try {
         const providerId = req.user.id;
@@ -83,7 +80,7 @@ exports.getProviderDashboardBookings = async (req, res) => {
 exports.updateBookingStatus = async (req, res) => {
     try {
         const { bookingId } = req.params;
-        const { status, paymentStatus } = req.body;
+        const { status, paymentStatus, reason } = req.body;
 
         const booking = await Booking.findById(bookingId);
         if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -94,6 +91,7 @@ exports.updateBookingStatus = async (req, res) => {
 
         if (status) booking.status = status;
         if (paymentStatus) booking.paymentStatus = paymentStatus;
+        if (reason) booking.reason = reason;
 
         await booking.save();
         res.json({ message: "Booking updated successfully", booking });
@@ -127,7 +125,7 @@ exports.getBookingDetails = async (req, res) => {
     }
 };
 
-// ----------- Seeker: Filter bookings -----------
+// Filter seeker bookings
 exports.filterSeekerBookings = async (req, res) => {
     try {
         const { status, fromDate, toDate } = req.query;
@@ -173,7 +171,7 @@ exports.cancelBooking = async (req, res) => {
     }
 };
 
-// ----------- Provider: Filter bookings -----------
+// Filter provider bookings
 exports.filterProviderBookings = async (req, res) => {
     try {
         const { status, upcoming } = req.query;
@@ -215,8 +213,11 @@ exports.submitReview = async (req, res) => {
         booking.review = review;
         await booking.save();
 
-        // Update provider reviews
+        // Update provider reviews (check no duplicate)
         const provider = await Provider.findById(booking.provider);
+        if (provider.reviews.some(r => r.booking.toString() === booking._id.toString())) {
+            return res.status(400).json({ message: "Review already submitted" });
+        }
         provider.reviews.push({ booking: booking._id, seeker: req.user.id, rating, review });
         await provider.updateRating();
 

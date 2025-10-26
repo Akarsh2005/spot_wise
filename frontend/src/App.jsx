@@ -11,6 +11,7 @@ import Register from './pages/register/register';
 import SeekerDashboard from './pages/SeekerDashboard/SeekerDashboard';
 import Booking from './pages/Booking/Booking'; // <-- import Booking page
 import MyBookings from './pages/mybooking/mybooking';
+import Profile from "./pages/Profile/Profile";
 
 const App = () => {
   return (
@@ -24,6 +25,7 @@ const App = () => {
           <Route path="/dashboard" element={<SeekerDashboard />} />
           <Route path="/book/:providerId" element={<Booking />} /> {/* <-- booking route */}
           <Route path="/mybookings" element={<MyBookings />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </div>
     </>

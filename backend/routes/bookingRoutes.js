@@ -3,7 +3,7 @@ const router = express.Router();
 const bookingController = require("../controllers/bookingController");
 const authMiddleware = require("../middleware/auth_middleware");
 
-// ------------------- Protected Routes -------------------
+// Protected Routes
 
 // Seeker routes
 router.post("/", authMiddleware, bookingController.createBooking);
@@ -17,15 +17,13 @@ router.get("/provider/filter", authMiddleware, bookingController.filterProviderB
 router.put("/provider/:bookingId", authMiddleware, bookingController.updateBookingStatus);
 router.get('/dashboard-bookings', authMiddleware, bookingController.getProviderDashboardBookings);
 
-
 // Single booking details (both seeker & provider)
 router.get("/:bookingId", authMiddleware, bookingController.getBookingDetails);
 
 // Submit review (Seeker)
 router.put("/review/:bookingId", authMiddleware, bookingController.submitReview);
 
-// Get provider reviews
+// Get provider reviews (public)
 router.get("/provider/:providerId/reviews", bookingController.getProviderReviews);
-
 
 module.exports = router;

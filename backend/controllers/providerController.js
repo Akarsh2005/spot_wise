@@ -1,5 +1,4 @@
 const jwt = require('jsonwebtoken');
-const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 const Provider = require('../models/providermodel');
 const Booking = require('../models/bookingModel');
@@ -34,7 +33,7 @@ exports.loginProvider = async (req, res) => {
         const provider = await Provider.findOne({ email });
         if (!provider) return res.status(400).json({ message: 'Invalid credentials' });
 
-        const isMatch = await bcrypt.compare(password, provider.password);
+        const isMatch = await provider.comparePassword(password);
         if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
 
         const token = generateToken(provider);
@@ -91,12 +90,18 @@ exports.getProviderDashboardStats = async (req, res) => {
         const completedBookings = await Booking.countDocuments({ provider: providerId, status: "Completed" });
         const pendingBookings = await Booking.countDocuments({ provider: providerId, status: "Pending" });
         const earningsAgg = await Booking.aggregate([
-            { $match: { provider: mongoose.Types.ObjectId(providerId), paymentStatus: "Paid" } },
+            { $match: { provider: new mongoose.Types.ObjectId(providerId), paymentStatus: "Paid" } },
             { $group: { _id: null, total: { $sum: "$totalAmount" } } }
         ]);
         const totalEarnings = earningsAgg.length ? earningsAgg[0].total : 0;
 
-        res.json({ totalBookings, completedBookings, pendingBookings, totalEarnings });
+        // Add notifications (recent pending bookings)
+        const notifications = await Booking.find({ provider: providerId, status: "Pending" })
+            .sort({ createdAt: -1 })
+            .limit(5)
+            .populate('seeker', 'userName');
+
+        res.json({ totalBookings, completedBookings, pendingBookings, totalEarnings, notifications });
     } catch (error) {
         console.error('Dashboard Error:', error);
         res.status(500).json({ message: 'Error fetching dashboard stats' });
@@ -108,7 +113,7 @@ exports.getProviderEarnings = async (req, res) => {
     try {
         const providerId = req.user.id;
         const earnings = await Booking.aggregate([
-            { $match: { provider: mongoose.Types.ObjectId(providerId), paymentStatus: "Paid" } },
+            { $match: { provider: new mongoose.Types.ObjectId(providerId), paymentStatus: "Paid" } },
             { $group: { _id: { month: { $month: "$date" }, year: { $year: "$date" } }, total: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
             { $sort: { "_id.year": -1, "_id.month": -1 } }
         ]);
@@ -122,7 +127,7 @@ exports.getProviderEarnings = async (req, res) => {
 // Fetch all providers (public, for seekers)
 exports.getAllProviders = async (req, res) => {
     try {
-        const providers = await Provider.find().select('-password');
+        const providers = await Provider.find().select('-password -reviews');
         res.json(providers);
     } catch (error) {
         console.error('Get All Providers Error:', error);
@@ -133,7 +138,7 @@ exports.getAllProviders = async (req, res) => {
 // Fetch specific provider by ID
 exports.getProviderById = async (req, res) => {
     try {
-        const provider = await Provider.findById(req.params.id).select('-password');
+        const provider = await Provider.findById(req.params.id).select('-password -reviews');
         if (!provider) return res.status(404).json({ message: 'Provider not found' });
         res.json(provider);
     } catch (error) {

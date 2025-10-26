@@ -60,7 +60,7 @@ const Register = () => {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("provider", JSON.stringify(response.data.provider));
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error("Register Error:", error);
       toast.error(

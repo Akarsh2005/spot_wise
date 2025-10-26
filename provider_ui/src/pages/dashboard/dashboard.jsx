@@ -1,35 +1,48 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import "./Dashboard.css";
+import { Bar } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend } from 'chart.js';
+import "./dashboard.css";
 
-const ProviderDashboard = () => {
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
+
+const Dashboard = () => {
   const navigate = useNavigate();
-  const [bookings, setBookings] = useState([]);
-  const [error, setError] = useState("");
+  const [stats, setStats] = useState({});
+  const [notifications, setNotifications] = useState([]);
+  const [chartData, setChartData] = useState({});
 
-  // Fetch provider bookings
-  const fetchBookings = async () => {
+  const fetchDashboard = async () => {
     try {
       const token = localStorage.getItem("token");
-      if (!token) return navigate("/login");
+      if (!token) return navigate("/");
 
-      const res = await axios.get(
-        "http://localhost:5001/api/bookings/dashboard-bookings",
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await axios.get("http://localhost:5001/api/providers/dashboard", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setStats(res.data);
+      setNotifications(res.data.notifications || []);
 
-      setBookings(res.data);
+      // Prepare earnings chart
+      const earningsRes = await axios.get("http://localhost:5001/api/providers/earnings", {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const labels = earningsRes.data.earnings.map(e => `${e._id.month}/${e._id.year}`);
+      const data = earningsRes.data.earnings.map(e => e.total);
+      setChartData({ 
+        labels, 
+        datasets: [{ label: "Earnings", data, backgroundColor: "rgba(75,192,192,0.6)" }] 
+      });
     } catch (err) {
-      setError(err.response?.data?.message || "Error fetching bookings");
+      console.error(err);
     }
   };
 
   useEffect(() => {
-    fetchBookings();
+    fetchDashboard();
   }, []);
 
-  // Logout handler
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("provider");
@@ -37,40 +50,39 @@ const ProviderDashboard = () => {
   };
 
   return (
-    <div className="provider-dashboard-container">
-      {/* Navbar */}
+    <div className="dashboard-container">
       <nav className="navbar">
-        <h2 className="logo" onClick={fetchBookings}>Provider Portal</h2>
+        <h2 className="logo">Provider Dashboard</h2>
         <div className="nav-links">
-          <button onClick={() => navigate("/provider-profile")} className="nav-button">Profile</button>
+          <button onClick={() => navigate("/profile")} className="nav-button">Profile</button>
+          <button onClick={() => navigate("/bookings")} className="nav-button">Bookings</button>
           <button onClick={handleLogout} className="nav-button logout">Logout</button>
         </div>
       </nav>
 
-      <h2>Bookings</h2>
-      {error && <div className="error-message">{error}</div>}
+      <h2>Stats</h2>
+      <div className="stats">
+        <div>Total Bookings: {stats.totalBookings}</div>
+        <div>Completed: {stats.completedBookings}</div>
+        <div>Pending: {stats.pendingBookings}</div>
+        <div>Total Earnings: ₹{stats.totalEarnings}</div>
+      </div>
 
-      {bookings.length === 0 ? (
-        <p className="no-bookings">No bookings available.</p>
-      ) : (
-        <div className="bookings-list">
-          {bookings.map((booking) => (
-            <div key={booking._id} className="booking-card">
-              <h3>Seeker: {booking.seeker.userName}</h3>
-              <p><strong>Email:</strong> {booking.seeker.email}</p>
-              <p><strong>Contact:</strong> {booking.seeker.contactNumber}</p>
-              <p><strong>Service:</strong> {booking.serviceType}</p>
-              <p><strong>Date:</strong> {new Date(booking.date).toLocaleDateString()}</p>
-              <p><strong>Time:</strong> {booking.time}</p>
-              <p><strong>Status:</strong> {booking.status}</p>
-              <p><strong>Payment Status:</strong> {booking.paymentStatus}</p>
-              <p><strong>Total Amount:</strong> ₹{booking.totalAmount}</p>
-            </div>
+      <h2>Earnings Chart</h2>
+      {chartData.labels ? <Bar data={chartData} /> : <p>No earnings data yet</p>}
+
+      <h2>Notifications</h2>
+      {notifications.length === 0 ? <p>No new notifications</p> :
+        <ul>
+          {notifications.map(n => (
+            <li key={n._id}>
+              New booking from {n.seeker.userName} for {n.serviceType} on {new Date(n.date).toLocaleDateString()}
+            </li>
           ))}
-        </div>
-      )}
+        </ul>
+      }
     </div>
   );
 };
 
-export default ProviderDashboard;
+export default Dashboard;

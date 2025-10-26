@@ -18,6 +18,7 @@ const seekerSchema = new mongoose.Schema({
     },
     contactNumber: {
         type: String,
+        required: true, // Made required for consistency
         match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit contact number']
     },
     password: {
@@ -48,7 +49,7 @@ seekerSchema.pre('save', async function (next) {
 });
 
 // Compare password
-seekerSchema.methods.comparePassword = function (candidatePassword) {
+seekerSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 

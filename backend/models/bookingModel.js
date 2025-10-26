@@ -31,9 +31,15 @@ const bookingSchema = new mongoose.Schema(
       postalCode: { type: String },
       country: { type: String },
     },
+    instructions: {
+      type: String
+    },
+    reason: {
+      type: String
+    },
     status: {
       type: String,
-      enum: ["Pending", "Accepted", "In Progress", "Completed", "Cancelled"],
+      enum: ["Pending", "Accepted", "In Progress", "Completed", "Cancelled", "Rejected"],
       default: "Pending",
     },
     paymentStatus: {
@@ -45,6 +51,14 @@ const bookingSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    rating: {
+      type: Number,
+      min: 1,
+      max: 5
+    },
+    review: {
+      type: String
+    }
   },
   { timestamps: true }
 );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './SeekerDashboard.css';
 
 const SeekerDashboard = () => {
@@ -8,7 +9,6 @@ const SeekerDashboard = () => {
   const [providers, setProviders] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filteredProviders, setFilteredProviders] = useState([]);
-  const [error, setError] = useState('');
 
   // Fetch providers from backend
   const fetchProviders = async () => {
@@ -20,7 +20,7 @@ const SeekerDashboard = () => {
       setProviders(response.data);
       setFilteredProviders(response.data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error fetching providers');
+      toast.error(err.response?.data?.message || 'Error fetching providers');
     }
   };
 
@@ -61,11 +61,10 @@ const SeekerDashboard = () => {
         />
         <div className="nav-links">
           <button onClick={() => navigate('/profile')} className="nav-button">Profile</button>
+          <button onClick={() => navigate('/mybookings')} className="nav-button">My Bookings</button>
           <button onClick={handleLogout} className="nav-button logout">Logout</button>
         </div>
       </nav>
-
-      {error && <div className="error-message">{error}</div>}
 
       {/* Provider List */}
       <div className="provider-list">

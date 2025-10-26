@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { toast } from 'react-toastify';
 import './register.css';
 
 const Register = () => {
@@ -17,8 +18,7 @@ const Register = () => {
       country: ''
     }
   });
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -36,32 +36,31 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+
+    if (!formData.userName || !formData.email || !formData.password || !formData.contactNumber) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
 
     // Basic client-side validation for contactNumber
-    if (formData.contactNumber && !/^[0-9]{10}$/.test(formData.contactNumber)) {
-      setError('Please enter a valid 10-digit contact number');
+    if (!/^[0-9]{10}$/.test(formData.contactNumber)) {
+      toast.error('Please enter a valid 10-digit contact number');
       return;
     }
 
     try {
+      setLoading(true);
       const response = await axios.post('http://localhost:5001/api/seekers/register', formData);
 
-      const { token, seeker } = response.data;
+      toast.success('Registration successful!');
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('seeker', JSON.stringify(response.data.seeker));
 
-      // Store token and seeker data in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('seeker', JSON.stringify(seeker));
-
-      setSuccess('Registration successful! Redirecting to profile...');
-
-      // Redirect to profile page after a short delay
-      setTimeout(() => {
-        navigate('/dashboard');
-      }, 1500);
+      navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during registration');
+      toast.error(err.response?.data?.message || 'An error occurred during registration');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,8 +68,6 @@ const Register = () => {
     <div className="register-container">
       <div className="register-box">
         <h2>Seeker Registration</h2>
-        {error && <div className="error-message">{error}</div>}
-        {success && <div className="success-message">{success}</div>}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label htmlFor="userName">Username</label>
@@ -104,6 +101,7 @@ const Register = () => {
               name="contactNumber"
               value={formData.contactNumber}
               onChange={handleChange}
+              required
               placeholder="Enter your 10-digit contact number"
             />
           </div>
@@ -180,10 +178,12 @@ const Register = () => {
               placeholder="Enter your country"
             />
           </div>
-          <button type="submit" className="register-button">Register</button>
+          <button type="submit" className="register-button" disabled={loading}>
+            {loading ? 'Registering...' : 'Register'}
+          </button>
         </form>
         <p className="login-link">
-          Already have an account? <a href="/login">Login here</a>
+          Already have an account? <a href="/">Login here</a>
         </p>
       </div>
     </div>

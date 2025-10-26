@@ -11,8 +11,6 @@ const generateToken = (seeker) => {
     );
 };
 
-// ------------------- Public Routes -------------------
-
 // Register Seeker
 exports.registerSeeker = async (req, res) => {
     try {
@@ -61,8 +59,6 @@ exports.loginSeeker = async (req, res) => {
         res.status(500).json({ message: 'Server error during login', error: error.message });
     }
 };
-
-// ------------------- Protected Routes -------------------
 
 // Get Seeker Profile
 exports.getSeekerProfile = async (req, res) => {

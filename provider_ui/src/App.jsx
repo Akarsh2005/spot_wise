@@ -7,8 +7,10 @@ import { Route, Routes } from 'react-router-dom';
 
 import DummyPage from './pages/DummyPage/DummyPage';
 import Login from './pages/login/login';
-import Register from './pages/register/register'; // ✅ new import
+import Register from './pages/register/register'; 
 import Dashboard from "./pages/dashboard/dashboard";
+import Profile from "./pages/Profile/Profile";
+import Bookings from "./pages/Bookings/Bookings";
 
 const App = () => {
   return (
@@ -18,8 +20,10 @@ const App = () => {
         <Routes>
           <Route path="/dummy" element={<DummyPage />} />
           <Route path="/" element={<Login />} />
-          <Route path="/register" element={<Register />} /> {/* ✅ new route */}
+          <Route path="/register" element={<Register />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/bookings" element={<Bookings />} />
         </Routes>
       </div>
     </>

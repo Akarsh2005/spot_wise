@@ -27,11 +27,13 @@ const providerSchema = new mongoose.Schema({
     },
     skills: {
         type: [String],
-        required: true // e.g., ['plumber', 'electrician']
+        required: true,
+        unique: true // Ensure no duplicate skills
     },
     rate: {
         type: Number,
-        default: 0
+        default: 0,
+        min: 0
     },
     address: {
         street: { type: String },
@@ -74,7 +76,7 @@ providerSchema.pre('save', async function (next) {
 });
 
 // Method to check password
-providerSchema.methods.comparePassword = function (candidatePassword) {
+providerSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
