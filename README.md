@@ -1,6 +1,6 @@
 
 
-SpotWise
+## SpotWise
 
 A complete service–seeker and service–provider platform offering "real-time booking, messaging, payments, and location-based services".
 
@@ -36,8 +36,7 @@ It offers:
 * A **Seeker Portal** for browsing, booking, and chatting
 * A **Provider Portal** for managing services and requests
 * **Real-time messaging** powered by Socket.io
-* **Secure payments** via Stripe
-* **Map-based provider discovery** using TomTom & Leaflet
+* **Map-based provider discovery** using TomTomMaps and mapbox
 
 ---
 
@@ -68,7 +67,7 @@ It offers:
 * Real-time notifications (Socket.io)
 * Secure JWT authentication
 * Responsive UI (Tailwind + Bootstrap)
-* Location-based features with TomTom + Leaflet
+* Location-based features with TomTom + Mapbox
 * Chat with full message history
 * Stripe payment integration
 
@@ -95,10 +94,7 @@ Detailed structure is preserved exactly as in your original version.
 * MongoDB + Mongoose
 * JWT Authentication
 * Socket.io
-* Stripe Payments
 * Multer (file uploads)
-* Dialogflow (AI)
-* node-cron (scheduled tasks)
 
 ### Frontend (Seeker & Provider)
 
@@ -106,8 +102,7 @@ Detailed structure is preserved exactly as in your original version.
 * Tailwind CSS, Bootstrap, SASS
 * Axios, React Router
 * Socket.io Client
-* Leaflet, TomTom Maps, React Map GL
-* Chart.js & react-chartjs-2
+* Mapbox, TomTom Maps, React Map GL
 * react-datepicker, react-toastify
 
 ---
@@ -120,9 +115,7 @@ Detailed structure is preserved exactly as in your original version.
 * **Git**
 * API keys:
 
-  * Google Dialogflow
-  * Stripe
-  * TomTom Maps
+  * Mapbox Api
 
 ---
 
@@ -166,14 +159,6 @@ npm install
 MONGODB_URI=your_mongodb_url
 JWT_SECRET=your_jwt_secret
 
-# Dialogflow
-GOOGLE_PROJECT_ID=xxxx
-GOOGLE_PRIVATE_KEY=xxxx
-GOOGLE_CLIENT_EMAIL=xxxx
-
-# Stripe
-STRIPE_SECRET_KEY=xxxx
-STRIPE_PUBLISHABLE_KEY=xxxx
 
 PORT=5000
 NODE_ENV=development
@@ -186,7 +171,7 @@ NODE_ENV=development
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_SOCKET_URL=http://localhost:5000
-VITE_TOMTOM_API_KEY=your_tomtom_api_key
+VITE_Mapbox_Api=your_mapbox_api_key
 ```
 
 ---
@@ -292,21 +277,7 @@ Runs at: **[http://localhost:5174](http://localhost:5174)**
 
 ---
 
-## 🛠 Troubleshooting
 
-### ❗ Port Already in Use
-
-Run:
-
-```bash
-netstat -ano | findstr :5000
-```
-
-Kill using:
-
-```bash
-taskkill /PID <id> /F
-```
 
 ### ❗ CORS Error
 
@@ -333,11 +304,6 @@ http://localhost:5174
 
 ---
 
-## 📄 License
-
-This project is under the **ISC License**.
-
----
 
 ## 💬 Support
 
