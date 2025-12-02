@@ -6,6 +6,7 @@ import './register.css';
 
 const Register = () => {
   const [formData, setFormData] = useState({
+    role: 'seeker', // 👈 Added role to match backend
     userName: '',
     email: '',
     contactNumber: '',
@@ -18,31 +19,34 @@ const Register = () => {
       country: ''
     }
   });
+
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  // handleChange function for nested address fields
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name.includes('address.')) {
       const field = name.split('.')[1];
-      setFormData({
-        ...formData,
-        address: { ...formData.address, [field]: value }
-      });
+      setFormData((prevData) => ({
+        ...prevData,
+        address: { ...prevData.address, [field]: value }
+      }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prevData) => ({ ...prevData, [name]: value }));
     }
   };
 
+  // handle form submit
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Basic validation
     if (!formData.userName || !formData.email || !formData.password || !formData.contactNumber) {
       toast.error('Please fill in all required fields');
       return;
     }
 
-    // Basic client-side validation for contactNumber
     if (!/^[0-9]{10}$/.test(formData.contactNumber)) {
       toast.error('Please enter a valid 10-digit contact number');
       return;
@@ -50,6 +54,7 @@ const Register = () => {
 
     try {
       setLoading(true);
+
       const response = await axios.post('http://localhost:5001/api/seekers/register', formData);
 
       toast.success('Registration successful!');
@@ -81,6 +86,7 @@ const Register = () => {
               placeholder="Enter your username"
             />
           </div>
+
           <div className="form-group">
             <label htmlFor="email">Email</label>
             <input
@@ -93,6 +99,7 @@ const Register = () => {
               placeholder="Enter your email"
             />
           </div>
+
           <div className="form-group">
             <label htmlFor="contactNumber">Contact Number</label>
             <input
@@ -105,6 +112,7 @@ const Register = () => {
               placeholder="Enter your 10-digit contact number"
             />
           </div>
+
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -114,74 +122,34 @@ const Register = () => {
               value={formData.password}
               onChange={handleChange}
               required
-              placeholder="Enter your password"
               minLength={6}
+              placeholder="Enter your password"
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="address.street">Street</label>
-            <input
-              type="text"
-              id="address.street"
-              name="address.street"
-              value={formData.address.street}
-              onChange={handleChange}
-              required
-              placeholder="Enter your street"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="address.city">City</label>
-            <input
-              type="text"
-              id="address.city"
-              name="address.city"
-              value={formData.address.city}
-              onChange={handleChange}
-              required
-              placeholder="Enter your city"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="address.state">State</label>
-            <input
-              type="text"
-              id="address.state"
-              name="address.state"
-              value={formData.address.state}
-              onChange={handleChange}
-              required
-              placeholder="Enter your state"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="address.postalCode">Postal Code</label>
-            <input
-              type="text"
-              id="address.postalCode"
-              name="address.postalCode"
-              value={formData.address.postalCode}
-              onChange={handleChange}
-              required
-              placeholder="Enter your postal code"
-            />
-          </div>
-          <div className="form-group">
-            <label htmlFor="address.country">Country</label>
-            <input
-              type="text"
-              id="address.country"
-              name="address.country"
-              value={formData.address.country}
-              onChange={handleChange}
-              required
-              placeholder="Enter your country"
-            />
-          </div>
+
+          {/* Address Fields */}
+          {['street', 'city', 'state', 'postalCode', 'country'].map((field) => (
+            <div key={field} className="form-group">
+              <label htmlFor={`address.${field}`}>
+                {field.charAt(0).toUpperCase() + field.slice(1)}
+              </label>
+              <input
+                type="text"
+                id={`address.${field}`}
+                name={`address.${field}`}
+                value={formData.address[field]}
+                onChange={handleChange}
+                required
+                placeholder={`Enter your ${field}`}
+              />
+            </div>
+          ))}
+
           <button type="submit" className="register-button" disabled={loading}>
             {loading ? 'Registering...' : 'Register'}
           </button>
         </form>
+
         <p className="login-link">
           Already have an account? <a href="/">Login here</a>
         </p>

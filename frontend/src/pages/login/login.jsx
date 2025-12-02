@@ -29,7 +29,12 @@ const Login = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('seeker', JSON.stringify(response.data.seeker));
 
-      navigate('/dashboard');
+      // 👇 Redirect seeker based on role
+      if (response.data.seeker.role === 'seeker') {
+        navigate('/dashboard');
+      } else {
+        toast.warn('Invalid role detected. Please check your account.');
+      }
     } catch (err) {
       toast.error(err.response?.data?.message || 'An error occurred during login');
     } finally {
@@ -53,6 +58,7 @@ const Login = () => {
               placeholder="Enter your email"
             />
           </div>
+
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <input
@@ -64,8 +70,12 @@ const Login = () => {
               placeholder="Enter your password"
             />
           </div>
-          <button type="submit" className="login-button" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+
+          <button type="submit" className="login-button" disabled={loading}>
+            {loading ? 'Logging in...' : 'Login'}
+          </button>
         </form>
+
         <p className="register-link">
           Don't have an account? <a href="/register">Register here</a>
         </p>

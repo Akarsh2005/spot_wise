@@ -1,21 +1,41 @@
-const express = require('express');
+// backend/routes/providerRoutes.js
+import express from 'express';
+import {
+  registerProvider,
+  loginProvider,
+  getProviderProfile,
+  updateProviderProfile,
+  updateProviderStatus,
+  getProviderDashboardStats,
+  getProviderEarnings,
+  getAllProviders,
+  getProviderById,
+  updateProviderLocation,  // 🔥 NEW
+  getProvidersNearby,      // 🔥 NEW
+  debugProviders
+} from '../controllers/providerController.js';
+import authMiddleware from '../middleware/auth_middleware.js';
+
 const router = express.Router();
-const providerController = require('../controllers/providerController');
-const authMiddleware = require('../middleware/auth_middleware');
 
 // Public routes
-router.post('/register', providerController.registerProvider);
-router.post('/login', providerController.loginProvider);
+router.post('/register', registerProvider);
+router.post('/login', loginProvider);
+router.get('/nearby', getProvidersNearby); // 🔥 NEW: Public route for nearby providers
 
 // Protected routes (requires JWT)
-router.get('/profile', authMiddleware, providerController.getProviderProfile);
-router.put('/profile', authMiddleware, providerController.updateProviderProfile);
-router.put('/status', authMiddleware, providerController.updateProviderStatus);
-router.get('/dashboard', authMiddleware, providerController.getProviderDashboardStats);
-router.get('/earnings', authMiddleware, providerController.getProviderEarnings);
+router.get('/profile', authMiddleware, getProviderProfile);
+router.put('/profile', authMiddleware, updateProviderProfile);
+router.put('/status', authMiddleware, updateProviderStatus);
+router.put('/location', authMiddleware, updateProviderLocation); // 🔥 NEW: Update location
+router.get('/dashboard', authMiddleware, getProviderDashboardStats);
+router.get('/earnings', authMiddleware, getProviderEarnings);
 
-// New routes for seekers
-router.get('/', providerController.getAllProviders); // get all providers
-router.get('/:id', providerController.getProviderById); // get specific provider
+// Keep existing routes for backward compatibility
+router.get('/', getAllProviders); // get all providers
+router.get('/:id', getProviderById); // get specific provider
 
-module.exports = router;
+// backend/routes/providerRoutes.js - Add this route
+router.get('/debug/providers',debugProviders);
+
+export default router;

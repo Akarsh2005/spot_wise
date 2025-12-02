@@ -6,6 +6,7 @@ import "./Register.css";
 
 const Register = () => {
   const [formData, setFormData] = useState({
+    role: "provider", // 👈 Ensures backend role consistency
     name: "",
     email: "",
     contactNumber: "",
@@ -24,6 +25,8 @@ const Register = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+
   const handleChange = (e) => {
     const { name, value } = e.target;
 
@@ -41,18 +44,27 @@ const Register = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    // Basic validation
     if (!formData.name || !formData.email || !formData.password) {
       toast.error("Please fill in all required fields");
       return;
     }
 
+    if (!/^[0-9]{10}$/.test(formData.contactNumber)) {
+      toast.error("Please enter a valid 10-digit contact number");
+      return;
+    }
+
     try {
       setLoading(true);
+
       const response = await axios.post(
-        "http://localhost:5001/api/providers/register",
+        `${API_URL}/api/providers/register`,
         {
           ...formData,
-          skills: formData.skills.split(",").map((s) => s.trim()),
+          skills: formData.skills
+            ? formData.skills.split(",").map((s) => s.trim())
+            : [],
         }
       );
 
@@ -120,6 +132,7 @@ const Register = () => {
             value={formData.password}
             onChange={handleChange}
             required
+            minLength={6}
           />
         </div>
 

@@ -1,18 +1,26 @@
-const express = require('express');
+import express from 'express';
+import {
+  registerSeeker,
+  loginSeeker,
+  getSeekerProfile,
+  updateSeekerProfile,
+  addSavedProvider,
+  removeSavedProvider
+} from '../controllers/seekerController.js';
+import authMiddleware from '../middleware/auth_middleware.js';
+
 const router = express.Router();
-const seekerController = require('../controllers/seekerController');
-const authMiddleware = require('../middleware/auth_middleware');
 
 // Public Routes
-router.post('/register', seekerController.registerSeeker);
-router.post('/login', seekerController.loginSeeker);
+router.post('/register', registerSeeker);
+router.post('/login', loginSeeker);
 
 // Protected Routes
-router.get('/profile', authMiddleware, seekerController.getSeekerProfile);
-router.put('/profile', authMiddleware, seekerController.updateSeekerProfile);
+router.get('/profile', authMiddleware, getSeekerProfile);
+router.put('/profile', authMiddleware, updateSeekerProfile);
 
 // Saved Providers
-router.post('/savedProviders/:providerId', authMiddleware, seekerController.addSavedProvider);
-router.delete('/savedProviders/:providerId', authMiddleware, seekerController.removeSavedProvider);
+router.post('/savedProviders/:providerId', authMiddleware, addSavedProvider);
+router.delete('/savedProviders/:providerId', authMiddleware, removeSavedProvider);
 
-module.exports = router;
+export default router;

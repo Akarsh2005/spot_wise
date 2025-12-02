@@ -1,62 +1,65 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import './Booking.css';
+// seeker/Booking.jsx
+import React, { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
+import "./Booking.css";
 
 const Booking = () => {
   const { providerId } = useParams();
   const navigate = useNavigate();
 
   const [provider, setProvider] = useState(null);
-  const [serviceType, setServiceType] = useState('');
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [instructions, setInstructions] = useState('');
+  const [serviceType, setServiceType] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [totalAmount, setTotalAmount] = useState(0);
-  const [address, setAddress] = useState({
-    street: '',
-    city: '',
-    state: '',
-    postalCode: '',
-    country: ''
-  });
   const [loading, setLoading] = useState(false);
+  const [address, setAddress] = useState({
+    street: "",
+    city: "",
+    state: "",
+    postalCode: "",
+    country: "",
+  });
+
+  const API_URL = "http://localhost:5001";
 
   // Fetch provider details
-  const fetchProvider = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:5001/api/providers/${providerId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setProvider(res.data);
-      setTotalAmount(res.data.rate); // default total amount
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Error fetching provider details');
-    }
-  };
-
   useEffect(() => {
+    const fetchProvider = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(`${API_URL}/api/providers/${providerId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setProvider(res.data);
+        setTotalAmount(res.data.rate);
+      } catch (err) {
+        toast.error(err.response?.data?.message || "Error fetching provider details");
+      }
+    };
+
     fetchProvider();
   }, [providerId]);
 
   const handleAddressChange = (e) => {
     const { name, value } = e.target;
-    setAddress({ ...address, [name]: value });
+    setAddress((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleBooking = async (e) => {
     e.preventDefault();
 
     if (!serviceType || !date || !time || !address.street || !address.city) {
-      toast.error('Please fill all required fields');
+      toast.error("Please fill all required fields");
       return;
     }
 
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem("token");
       const bookingData = {
         providerId,
         serviceType,
@@ -64,17 +67,17 @@ const Booking = () => {
         time,
         address,
         instructions,
-        totalAmount
+        totalAmount,
       };
 
-      const res = await axios.post('http://localhost:5001/api/bookings', bookingData, {
-        headers: { Authorization: `Bearer ${token}` }
+      await axios.post(`${API_URL}/api/bookings`, bookingData, {
+        headers: { Authorization: `Bearer ${token}` },
       });
 
-      toast.success('Booking successful!');
-      navigate('/mybookings');
+      toast.success("Booking created successfully!");
+      navigate("/mybookings");
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error creating booking');
+      toast.error(err.response?.data?.message || "Error creating booking");
     } finally {
       setLoading(false);
     }
@@ -84,10 +87,9 @@ const Booking = () => {
 
   return (
     <div className="booking-container">
-      <h2>Book Service: {provider.name}</h2>
-
+      <h2>Book {provider.name}</h2>
       <div className="provider-info">
-        <p><strong>Skills:</strong> {provider.skills.join(', ')}</p>
+        <p><strong>Skills:</strong> {provider.skills?.join(", ")}</p>
         <p><strong>Rate:</strong> ₹{provider.rate}/hr</p>
         <p><strong>Contact:</strong> {provider.contactNumber}</p>
       </div>
@@ -95,44 +97,36 @@ const Booking = () => {
       <form onSubmit={handleBooking} className="booking-form">
         <div className="form-group">
           <label>Service Type</label>
-          <select 
-            value={serviceType} 
+          <select
+            value={serviceType}
             onChange={(e) => setServiceType(e.target.value)}
             required
           >
-            <option value="">Select service</option>
-            {provider.skills.map(skill => (
-              <option key={skill} value={skill}>{skill}</option>
+            <option value="">Select a service</option>
+            {provider.skills?.map((skill) => (
+              <option key={skill} value={skill}>
+                {skill}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="form-group">
           <label>Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            required
-          />
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
         </div>
 
         <div className="form-group">
           <label>Time</label>
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            required
-          />
+          <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required />
         </div>
 
         <div className="form-group">
-          <label>Special Instructions</label>
+          <label>Instructions</label>
           <textarea
             value={instructions}
             onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Any special instructions?"
+            placeholder="Any special notes?"
           />
         </div>
 
@@ -142,13 +136,13 @@ const Booking = () => {
             type="number"
             value={totalAmount}
             onChange={(e) => setTotalAmount(e.target.value)}
-            required
             min={provider.rate}
+            required
           />
         </div>
 
         <h4>Address</h4>
-        {['street', 'city', 'state', 'postalCode', 'country'].map(field => (
+        {["street", "city", "state", "postalCode", "country"].map((field) => (
           <div className="form-group" key={field}>
             <label>{field.charAt(0).toUpperCase() + field.slice(1)}</label>
             <input
@@ -156,14 +150,14 @@ const Booking = () => {
               name={field}
               value={address[field]}
               onChange={handleAddressChange}
-              required={field !== 'postalCode' && field !== 'country'}
               placeholder={`Enter ${field}`}
+              required={["street", "city"].includes(field)}
             />
           </div>
         ))}
 
         <button type="submit" className="book-button" disabled={loading}>
-          {loading ? 'Booking...' : 'Book Service'}
+          {loading ? "Booking..." : "Book Now"}
         </button>
       </form>
     </div>
