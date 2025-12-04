@@ -29,14 +29,14 @@ Table of Contents
 
 ## Project Overview
 
-"SpotWise" is a full-stack web application designed to seamlessly connect individuals seeking services with professional providers.
+SpotWise is a full-stack web application designed to seamlessly connect individuals seeking services with professional providers.
 
 It offers:
 
 * A **Seeker Portal** for browsing, booking, and chatting
 * A **Provider Portal** for managing services and requests
 * **Real-time messaging** powered by Socket.io
-* **Map-based provider discovery** using TomTomMaps and mapbox
+* **Map-based provider discovery** using openstreetmap
 
 ---
 
@@ -67,9 +67,9 @@ It offers:
 * Real-time notifications (Socket.io)
 * Secure JWT authentication
 * Responsive UI (Tailwind + Bootstrap)
-* Location-based features with TomTom + Mapbox
+* Location-based features with TomTom Maps and openstreetmap
 * Chat with full message history
-* Stripe payment integration
+
 
 ---
 
@@ -102,7 +102,7 @@ Detailed structure is preserved exactly as in your original version.
 * Tailwind CSS, Bootstrap, SASS
 * Axios, React Router
 * Socket.io Client
-* Mapbox, TomTom Maps, React Map GL
+* openstreetmap, TomTom Maps, React Map GL
 * react-datepicker, react-toastify
 
 ---
@@ -115,7 +115,7 @@ Detailed structure is preserved exactly as in your original version.
 * **Git**
 * API keys:
 
-  * Mapbox Api
+  * openstreetmap Api
 
 ---
 
@@ -171,7 +171,7 @@ NODE_ENV=development
 ```env
 VITE_API_URL=http://localhost:5000
 VITE_SOCKET_URL=http://localhost:5000
-VITE_Mapbox_Api=your_mapbox_api_key
+VITE_openstreetmap_Api=your_openstreetmap_api_key
 ```
 
 ---
@@ -312,4 +312,3 @@ Have questions?
 
 ---
 
-If you want, I can also create a **badges section**, **screenshots section**, or **demo video section** to make it more professional.
