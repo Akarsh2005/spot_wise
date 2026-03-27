@@ -1,311 +1,314 @@
-// backend/controllers/providerController.js
-import jwt from 'jsonwebtoken';
-import mongoose from 'mongoose';
-import Provider from '../models/providermodel.js';
-import Booking from '../models/bookingModel.js';
+// controllers/providerController.js
+import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
+import Provider from "../models/providermodel.js";
+import Booking from "../models/bookingModel.js";
 
-// 🔑 Generate JWT token for provider
+// 🔑 Generate JWT token
 const generateToken = (provider) => {
-    return jwt.sign(
-        { id: provider._id, role: 'provider' },
-        process.env.JWT_SECRET,
-        { expiresIn: '7d' }
-    );
+  return jwt.sign(
+    { id: provider._id, role: "provider" },
+    process.env.JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 };
 
-// backend/controllers/providerController.js - Update registerProvider
+// ✅ Register Provider
 export const registerProvider = async (req, res) => {
   try {
     const { name, email, contactNumber, password, skills, rate, address } = req.body;
+
+    if (!name || !email || !password || !skills || skills.length === 0)
+      return res.status(400).json({ message: "Name, email, password, and skills are required" });
+
     const existing = await Provider.findOne({ email });
-    if (existing) return res.status(400).json({ message: 'Provider already exists' });
+    if (existing) return res.status(400).json({ message: "Provider already exists" });
 
-    // 🔥 Get approximate location from address or use a default Indian city
-    const defaultLocation = {
-      type: 'Point',
-      coordinates: [78.9629, 20.5937] // Default India coordinates
-    };
-
-    const provider = new Provider({ 
-      name, email, contactNumber, password, skills, rate, address,
-      location: defaultLocation // Use default instead of [0,0]
+    const provider = new Provider({
+      name,
+      email,
+      contactNumber,
+      password,
+      skills,
+      rate,
+      address,
+      // FIX: Do not default to [0,0] India coords — wait for real GPS location
+      location: { type: "Point", coordinates: [0, 0] },
+      locationSet: false,
     });
 
     await provider.save();
 
     const token = generateToken(provider);
-    res.status(201).json({ 
-      message: 'Provider registered successfully', 
-      token, 
-      provider 
+    res.status(201).json({
+      message: "Provider registered successfully. Please update your location.",
+      token,
+      provider: { ...provider.toObject(), password: undefined },
     });
   } catch (error) {
-    console.error('Register Error:', error);
-    res.status(500).json({ message: 'Server error during registration' });
+    console.error("Register Provider Error:", error);
+    res.status(500).json({ message: "Server error during registration" });
   }
 };
 
-// 🔐 Login Provider
+// ✅ Login Provider
 export const loginProvider = async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const provider = await Provider.findOne({ email });
-        if (!provider) return res.status(400).json({ message: 'Invalid credentials' });
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ message: "Email and password are required" });
 
-        const isMatch = await provider.comparePassword(password);
-        if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
+    const provider = await Provider.findOne({ email });
+    if (!provider) return res.status(400).json({ message: "Invalid credentials" });
 
-        const token = generateToken(provider);
-        res.json({ message: 'Login successful', token, provider });
-    } catch (error) {
-        console.error('Login Error:', error);
-        res.status(500).json({ message: 'Server error during login' });
-    }
+    const isMatch = await provider.comparePassword(password);
+    if (!isMatch) return res.status(400).json({ message: "Invalid credentials" });
+
+    const token = generateToken(provider);
+    res.json({
+      message: "Login successful",
+      token,
+      provider: { ...provider.toObject(), password: undefined },
+    });
+  } catch (error) {
+    console.error("Login Provider Error:", error);
+    res.status(500).json({ message: "Server error during login" });
+  }
 };
 
 // 📍 Update Provider Location
 export const updateProviderLocation = async (req, res) => {
-    try {
-        const { latitude, longitude } = req.body;
+  try {
+    const { latitude, longitude } = req.body;
 
-        if (!latitude || !longitude)
-            return res.status(400).json({ message: 'Latitude and longitude are required' });
+    if (latitude === undefined || longitude === undefined)
+      return res.status(400).json({ message: "Latitude and longitude are required" });
 
-        const provider = await Provider.findByIdAndUpdate(
-            req.user.id,
-            {
-                location: {
-                    type: 'Point',
-                    coordinates: [longitude, latitude],
-                },
-            },
-            { new: true }
-        ).select('-password');
+    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180)
+      return res.status(400).json({ message: "Invalid coordinates" });
 
-        res.json({ message: 'Location updated successfully', provider });
-    } catch (error) {
-        console.error('Update Location Error:', error);
-        res.status(500).json({ message: 'Server error updating location' });
-    }
+    const provider = await Provider.findByIdAndUpdate(
+      req.user.id,
+      {
+        location: {
+          type: "Point",
+          coordinates: [parseFloat(longitude), parseFloat(latitude)],
+        },
+        locationSet: true,
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+
+    res.json({ message: "Location updated successfully", provider });
+  } catch (error) {
+    console.error("Update Provider Location Error:", error);
+    res.status(500).json({ message: "Server error updating location" });
+  }
 };
 
-// backend/controllers/providerController.js - Update getProvidersNearby
+// 📍 Get Providers Nearby (used by seekers on map)
+// FIX: Only query providers who have set a real location (locationSet: true)
+// FIX: Removed catch fallback that was returning ALL providers regardless of distance
 export const getProvidersNearby = async (req, res) => {
   try {
-    const { latitude, longitude, maxDistance = 50000 } = req.query; // Increased to 50km default
-    
-    if (!latitude || !longitude) {
-      return res.status(400).json({ message: 'Latitude and longitude are required' });
-    }
+    const { latitude, longitude, maxDistance = 5000, skill } = req.query;
 
-    console.log('📍 Nearby query:', { latitude, longitude, maxDistance });
+    if (!latitude || !longitude)
+      return res.status(400).json({ message: "Latitude and longitude are required" });
 
-    // 🔥 Try geospatial query first
-    let providers;
-    try {
-      providers = await Provider.find({
-        location: {
-          $near: {
-            $geometry: {
-              type: 'Point',
-              coordinates: [parseFloat(longitude), parseFloat(latitude)]
-            },
-            $maxDistance: parseInt(maxDistance)
-          }
+    const lat = parseFloat(latitude);
+    const lng = parseFloat(longitude);
+    const dist = parseInt(maxDistance);
+
+    if (isNaN(lat) || isNaN(lng) || isNaN(dist))
+      return res.status(400).json({ message: "Invalid query parameters" });
+
+    // Build filter — only real locations, only online providers
+    const filter = {
+      locationSet: true,
+      "location.coordinates": { $ne: [0, 0] },
+      status: "online",
+      location: {
+        $near: {
+          $geometry: { type: "Point", coordinates: [lng, lat] },
+          $maxDistance: dist,
         },
-        status: { $in: ['online', 'active', 'offline'] } // Include offline too for testing
-      }).select('-password -reviews');
-    } catch (geoError) {
-      console.log('Geospatial query failed, falling back to all providers:', geoError);
-      // Fallback: get all providers if geospatial fails
-      providers = await Provider.find({
-        status: { $in: ['online', 'active', 'offline'] }
-      }).select('-password -reviews');
-    }
+      },
+    };
 
-    console.log(`✅ Found ${providers.length} providers`);
+    // Optional skill filter
+    if (skill) filter.skills = { $in: [new RegExp(skill, "i")] };
+
+    const providers = await Provider.find(filter).select("-password -reviews");
 
     res.json({
-      message: `Found ${providers.length} providers within ${maxDistance/1000}km`,
+      message: `Found ${providers.length} provider(s) within ${dist / 1000}km`,
+      count: providers.length,
       providers,
-      userLocation: { latitude, longitude }
+      userLocation: { latitude: lat, longitude: lng },
     });
   } catch (error) {
-    console.error('Get Nearby Providers Error:', error);
-    
-    // Final fallback: return all providers
-    const allProviders = await Provider.find({
-      status: { $in: ['online', 'active', 'offline'] }
-    }).select('-password -reviews');
-    
-    res.json({
-      message: `Found ${allProviders.length} providers (fallback)`,
-      providers: allProviders,
-      userLocation: { latitude, longitude }
-    });
+    console.error("Get Nearby Providers Error:", error);
+    res.status(500).json({ message: "Server error fetching nearby providers" });
   }
 };
 
 // 👤 Get Provider Profile
 export const getProviderProfile = async (req, res) => {
-    try {
-        const provider = await Provider.findById(req.user.id).select('-password');
-        if (!provider) return res.status(404).json({ message: 'Provider not found' });
-        res.json(provider);
-    } catch (error) {
-        console.error('Profile Error:', error);
-        res.status(500).json({ message: 'Server error fetching profile' });
-    }
+  try {
+    const provider = await Provider.findById(req.user.id).select("-password");
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+    res.json(provider);
+  } catch (error) {
+    console.error("Get Provider Profile Error:", error);
+    res.status(500).json({ message: "Server error fetching profile" });
+  }
 };
 
 // ✏️ Update Provider Profile
+// FIX: Whitelist only safe fields — prevents mass assignment (verified, rating, role)
 export const updateProviderProfile = async (req, res) => {
-    try {
-        const updates = req.body;
-        const provider = await Provider.findByIdAndUpdate(req.user.id, updates, {
-            new: true,
-        }).select('-password');
-        res.json({ message: 'Profile updated successfully', provider });
-    } catch (error) {
-        console.error('Update Profile Error:', error);
-        res.status(500).json({ message: 'Server error updating profile' });
-    }
-};
-
-// 🔄 Update Provider Status
-export const updateProviderStatus = async (req, res) => {
-    try {
-        const { status } = req.body;
-        if (!['online', 'offline', 'in-progress'].includes(status))
-            return res.status(400).json({ message: 'Invalid status' });
-
-        const provider = await Provider.findByIdAndUpdate(req.user.id, { status }, { new: true });
-        res.json({ message: 'Status updated', provider });
-    } catch (error) {
-        console.error('Update Status Error:', error);
-        res.status(500).json({ message: 'Server error updating status' });
-    }
-};
-
-// 📊 Dashboard Stats
-export const getProviderDashboardStats = async (req, res) => {
-    try {
-        const providerId = req.user.id;
-
-        const totalBookings = await Booking.countDocuments({ provider: providerId });
-        const completedBookings = await Booking.countDocuments({
-            provider: providerId,
-            status: 'Completed',
-        });
-        const pendingBookings = await Booking.countDocuments({
-            provider: providerId,
-            status: 'Pending',
-        });
-
-        const earningsAgg = await Booking.aggregate([
-            {
-                $match: {
-                    provider: new mongoose.Types.ObjectId(providerId),
-                    paymentStatus: 'Paid',
-                },
-            },
-            { $group: { _id: null, total: { $sum: '$totalAmount' } } },
-        ]);
-        const totalEarnings = earningsAgg.length ? earningsAgg[0].total : 0;
-
-        const notifications = await Booking.find({
-            provider: providerId,
-            status: 'Pending',
-        })
-            .sort({ createdAt: -1 })
-            .limit(5)
-            .populate('seeker', 'userName');
-
-        res.json({
-            totalBookings,
-            completedBookings,
-            pendingBookings,
-            totalEarnings,
-            notifications,
-        });
-    } catch (error) {
-        console.error('Dashboard Error:', error);
-        res.status(500).json({ message: 'Error fetching dashboard stats' });
-    }
-};
-
-// 💰 Earnings History
-export const getProviderEarnings = async (req, res) => {
-    try {
-        const providerId = req.user.id;
-        const earnings = await Booking.aggregate([
-            {
-                $match: {
-                    provider: new mongoose.Types.ObjectId(providerId),
-                    paymentStatus: 'Paid',
-                },
-            },
-            {
-                $group: {
-                    _id: { month: { $month: '$date' }, year: { $year: '$date' } },
-                    total: { $sum: '$totalAmount' },
-                    count: { $sum: 1 },
-                },
-            },
-            { $sort: { '_id.year': -1, '_id.month': -1 } },
-        ]);
-
-        res.json({ earnings });
-    } catch (error) {
-        console.error('Earnings Error:', error);
-        res.status(500).json({ message: 'Error fetching earnings' });
-    }
-};
-
-// 🌍 Fetch all Providers (public for seekers)
-export const getAllProviders = async (req, res) => {
-    try {
-        const providers = await Provider.find().select('-password -reviews');
-        res.json(providers);
-    } catch (error) {
-        console.error('Get All Providers Error:', error);
-        res.status(500).json({ message: 'Server error fetching providers' });
-    }
-};
-
-// 🔎 Fetch Provider by ID
-export const getProviderById = async (req, res) => {
-    try {
-        const provider = await Provider.findById(req.params.id).select('-password -reviews');
-        if (!provider) return res.status(404).json({ message: 'Provider not found' });
-        res.json(provider);
-    } catch (error) {
-        console.error('Get Provider By ID Error:', error);
-        res.status(500).json({ message: 'Server error fetching provider' });
-    }
-};
-
-// backend/controllers/providerController.js - Add this function
-export const debugProviders = async (req, res) => {
   try {
-    const providers = await Provider.find().select('name location status');
-    const providersWithLocation = providers.filter(p => 
-      p.location && 
-      p.location.coordinates[0] !== 0 && 
-      p.location.coordinates[1] !== 0
-    );
-    
+    const { name, contactNumber, skills, rate, address } = req.body;
+
+    const provider = await Provider.findByIdAndUpdate(
+      req.user.id,
+      { name, contactNumber, skills, rate, address },
+      { new: true, runValidators: true }
+    ).select("-password");
+
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+    res.json({ message: "Profile updated successfully", provider });
+  } catch (error) {
+    console.error("Update Provider Profile Error:", error);
+    res.status(500).json({ message: "Server error updating profile" });
+  }
+};
+
+// 🔄 Update Provider Status (online / offline / in-progress)
+export const updateProviderStatus = async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!["online", "offline", "in-progress"].includes(status))
+      return res.status(400).json({ message: "Invalid status value" });
+
+    const provider = await Provider.findByIdAndUpdate(
+      req.user.id,
+      { status },
+      { new: true }
+    ).select("-password");
+
+    res.json({ message: "Status updated", provider });
+  } catch (error) {
+    console.error("Update Provider Status Error:", error);
+    res.status(500).json({ message: "Server error updating status" });
+  }
+};
+
+// 📊 Provider Dashboard Stats
+export const getProviderDashboardStats = async (req, res) => {
+  try {
+    const providerId = new mongoose.Types.ObjectId(req.user.id);
+
+    const [totalBookings, completedBookings, pendingBookings, earningsAgg, recentRequests] =
+      await Promise.all([
+        Booking.countDocuments({ provider: providerId }),
+        Booking.countDocuments({ provider: providerId, status: "Completed" }),
+        Booking.countDocuments({ provider: providerId, status: "Pending" }),
+
+        // FIX: Use paidAt for earnings grouping instead of service date
+        Booking.aggregate([
+          { $match: { provider: providerId, paymentStatus: "Paid" } },
+          { $group: { _id: null, total: { $sum: "$totalAmount" } } },
+        ]),
+
+        // 5 most recent pending requests with seeker details
+        Booking.find({ provider: providerId, status: "Pending" })
+          .sort({ createdAt: -1 })
+          .limit(5)
+          .populate("seeker", "userName contactNumber"),
+      ]);
+
+    const totalEarnings = earningsAgg.length ? earningsAgg[0].total : 0;
+
     res.json({
-      totalProviders: providers.length,
-      providersWithLocation: providersWithLocation.length,
-      allProviders: providers.map(p => ({
-        name: p.name,
-        location: p.location,
-        status: p.status
-      }))
+      totalBookings,
+      completedBookings,
+      pendingBookings,
+      totalEarnings,
+      recentRequests,
     });
   } catch (error) {
-    console.error('Debug Error:', error);
-    res.status(500).json({ message: 'Debug error' });
+    console.error("Dashboard Stats Error:", error);
+    res.status(500).json({ message: "Error fetching dashboard stats" });
+  }
+};
+
+// 💰 Earnings History (grouped by month)
+// FIX: Group by paidAt month instead of service date
+export const getProviderEarnings = async (req, res) => {
+  try {
+    const providerId = new mongoose.Types.ObjectId(req.user.id);
+
+    const earnings = await Booking.aggregate([
+      {
+        $match: {
+          provider: providerId,
+          paymentStatus: "Paid",
+          paidAt: { $ne: null }, // Only bookings with a recorded payment date
+        },
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$paidAt" },
+            year: { $year: "$paidAt" },
+          },
+          total: { $sum: "$totalAmount" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+    ]);
+
+    res.json({ earnings });
+  } catch (error) {
+    console.error("Earnings Error:", error);
+    res.status(500).json({ message: "Error fetching earnings" });
+  }
+};
+
+// 🌍 Get All Providers (public — for seeker browse)
+export const getAllProviders = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, skill } = req.query;
+    const filter = {};
+    if (skill) filter.skills = { $in: [new RegExp(skill, "i")] };
+
+    const providers = await Provider.find(filter)
+      .select("-password -reviews")
+      .skip((parseInt(page) - 1) * parseInt(limit))
+      .limit(parseInt(limit));
+
+    const total = await Provider.countDocuments(filter);
+
+    res.json({ providers, total, page: parseInt(page), limit: parseInt(limit) });
+  } catch (error) {
+    console.error("Get All Providers Error:", error);
+    res.status(500).json({ message: "Server error fetching providers" });
+  }
+};
+
+// 🔎 Get Provider by ID (public)
+export const getProviderById = async (req, res) => {
+  try {
+    const provider = await Provider.findById(req.params.id).select("-password");
+    if (!provider) return res.status(404).json({ message: "Provider not found" });
+    res.json(provider);
+  } catch (error) {
+    console.error("Get Provider By ID Error:", error);
+    res.status(500).json({ message: "Server error fetching provider" });
   }
 };

@@ -9,21 +9,23 @@ import {
   getBookingDetails,
   submitReview,
 } from "../controllers/bookingController.js";
-import authMiddleware from "../middleware/auth_middleware.js";
+import authMiddleware, { requireRole } from "../middleware/auth_middleware.js";
 
 const router = express.Router();
 
-// Seeker
-router.post("/", authMiddleware, createBooking);
-router.get("/seeker", authMiddleware, getSeekerBookings);
-router.put("/seeker/cancel/:bookingId", authMiddleware, cancelBooking);
-router.put("/review/:bookingId", authMiddleware, submitReview);
+// ─── Seeker-only Routes ─────────────────────────────────────────
+// FIX: requireRole('seeker') added — previously any role could call these
+router.post("/",                       authMiddleware, requireRole("seeker"), createBooking);
+router.get("/seeker",                  authMiddleware, requireRole("seeker"), getSeekerBookings);
+router.put("/seeker/cancel/:bookingId",authMiddleware, requireRole("seeker"), cancelBooking);
+router.put("/review/:bookingId",       authMiddleware, requireRole("seeker"), submitReview);
 
-// Provider
-router.get("/provider", authMiddleware, getProviderBookings);
-router.put("/provider/:bookingId", authMiddleware, updateBookingStatus);
+// ─── Provider-only Routes ───────────────────────────────────────
+// FIX: requireRole('provider') added — previously any role could call these
+router.get("/provider",                authMiddleware, requireRole("provider"), getProviderBookings);
+router.put("/provider/:bookingId",     authMiddleware, requireRole("provider"), updateBookingStatus);
 
-// Shared
+// ─── Shared (seeker or provider who owns the booking) ──────────
 router.get("/:bookingId", authMiddleware, getBookingDetails);
 
 export default router;

@@ -1,9 +1,11 @@
+// controllers/messageController.js
 import Message from "../models/messageModel.js";
 import Chat from "../models/chatModel.js";
 
+// ✅ Send a Message
 export const sendMessage = async (req, res) => {
   const { content, chatId } = req.body;
-  
+
   if (!content || !chatId) {
     return res.status(400).json({ message: "Content and chat ID are required" });
   }
@@ -14,35 +16,31 @@ export const sendMessage = async (req, res) => {
       return res.status(404).json({ message: "Chat not found" });
     }
 
+    // Verify the sender is a participant in this chat
     const isParticipant = chat.participants.some(
-      p => p.user.toString() === req.user.id
+      (p) => p.user.toString() === req.user.id
     );
-    
     if (!isParticipant) {
-      return res.status(403).json({ message: "Not a participant in this chat" });
+      return res.status(403).json({ message: "You are not a participant in this chat" });
     }
 
+    const senderModelRef = req.user.role === "seeker" ? "Seeker" : "Provider";
+
     const newMessage = await Message.create({
-      sender: {
-        user: req.user.id,
-        modelRef: req.user.role === 'seeker' ? 'Seeker' : 'Provider'
-      },
+      sender: { user: req.user.id, modelRef: senderModelRef },
       content,
       chat: chatId,
-      readBy: [{
-        user: req.user.id,
-        modelRef: req.user.role === 'seeker' ? 'Seeker' : 'Provider'
-      }]
+      readBy: [{ user: req.user.id, modelRef: senderModelRef }],
     });
 
     const populatedMessage = await Message.findById(newMessage._id)
       .populate("sender.user", "name userName email")
       .populate("chat");
 
-    await Chat.findByIdAndUpdate(chatId, { 
-      latestMessage: populatedMessage._id 
-    });
+    // Update latestMessage on the chat
+    await Chat.findByIdAndUpdate(chatId, { latestMessage: populatedMessage._id });
 
+    // 📡 Broadcast to all users in the chat room
     const io = req.app.get("io");
     io.to(chatId.toString()).emit("message_received", populatedMessage);
 
@@ -53,21 +51,22 @@ export const sendMessage = async (req, res) => {
   }
 };
 
+// ✅ Get All Messages in a Chat
 export const getMessages = async (req, res) => {
   try {
     const { chatId } = req.params;
-    
+
     const chat = await Chat.findById(chatId);
     if (!chat) {
       return res.status(404).json({ message: "Chat not found" });
     }
 
+    // Verify the requester is a participant
     const isParticipant = chat.participants.some(
-      p => p.user.toString() === req.user.id
+      (p) => p.user.toString() === req.user.id
     );
-    
     if (!isParticipant) {
-      return res.status(403).json({ message: "Not a participant in this chat" });
+      return res.status(403).json({ message: "You are not a participant in this chat" });
     }
 
     const messages = await Message.find({ chat: chatId })

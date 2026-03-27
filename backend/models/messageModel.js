@@ -1,4 +1,5 @@
-import mongoose from 'mongoose';
+// models/messageModel.js
+import mongoose from "mongoose";
 
 const messageSchema = new mongoose.Schema(
   {
@@ -6,12 +7,12 @@ const messageSchema = new mongoose.Schema(
       user: {
         type: mongoose.Schema.Types.ObjectId,
         required: true,
-        refPath: 'sender.modelRef',
+        refPath: "sender.modelRef",
       },
       modelRef: {
         type: String,
         required: true,
-        enum: ['Seeker', 'Provider'],
+        enum: ["Seeker", "Provider"],
       },
     },
     content: {
@@ -21,7 +22,7 @@ const messageSchema = new mongoose.Schema(
     },
     chat: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Chat',
+      ref: "Chat",
       required: true,
     },
     readBy: [
@@ -29,12 +30,12 @@ const messageSchema = new mongoose.Schema(
         user: {
           type: mongoose.Schema.Types.ObjectId,
           required: true,
-          refPath: 'readBy.modelRef',
+          refPath: "readBy.modelRef",
         },
         modelRef: {
           type: String,
           required: true,
-          enum: ['Seeker', 'Provider'],
+          enum: ["Seeker", "Provider"],
         },
         readAt: {
           type: Date,
@@ -48,5 +49,5 @@ const messageSchema = new mongoose.Schema(
 
 messageSchema.index({ chat: 1, createdAt: 1 });
 
-const Message = mongoose.model('Message', messageSchema);
+const Message = mongoose.model("Message", messageSchema);
 export default Message;

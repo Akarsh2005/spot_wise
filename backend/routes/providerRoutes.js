@@ -1,41 +1,42 @@
-// backend/routes/providerRoutes.js
-import express from 'express';
+// routes/providerRoutes.js
+import express from "express";
 import {
   registerProvider,
   loginProvider,
   getProviderProfile,
   updateProviderProfile,
   updateProviderStatus,
+  updateProviderLocation,
   getProviderDashboardStats,
   getProviderEarnings,
   getAllProviders,
   getProviderById,
-  updateProviderLocation,  // 🔥 NEW
-  getProvidersNearby,      // 🔥 NEW
-  debugProviders
-} from '../controllers/providerController.js';
-import authMiddleware from '../middleware/auth_middleware.js';
+  getProvidersNearby,
+} from "../controllers/providerController.js";
+import authMiddleware, { requireRole } from "../middleware/auth_middleware.js";
 
 const router = express.Router();
 
-// Public routes
-router.post('/register', registerProvider);
-router.post('/login', loginProvider);
-router.get('/nearby', getProvidersNearby); // 🔥 NEW: Public route for nearby providers
+// ─── Public Routes ──────────────────────────────────────────────
+router.post("/register", registerProvider);
+router.post("/login",    loginProvider);
+router.get("/nearby",    getProvidersNearby); // Seeker-facing map endpoint
 
-// Protected routes (requires JWT)
-router.get('/profile', authMiddleware, getProviderProfile);
-router.put('/profile', authMiddleware, updateProviderProfile);
-router.put('/status', authMiddleware, updateProviderStatus);
-router.put('/location', authMiddleware, updateProviderLocation); // 🔥 NEW: Update location
-router.get('/dashboard', authMiddleware, getProviderDashboardStats);
-router.get('/earnings', authMiddleware, getProviderEarnings);
+// ─── IMPORTANT: Specific named routes MUST come before /:id ─────
+// FIX: Route ordering bug — previously /:id matched before these named routes
 
-// Keep existing routes for backward compatibility
-router.get('/', getAllProviders); // get all providers
-router.get('/:id', getProviderById); // get specific provider
+// ─── Protected Routes (provider only) ──────────────────────────
+router.get("/profile",   authMiddleware, requireRole("provider"), getProviderProfile);
+router.put("/profile",   authMiddleware, requireRole("provider"), updateProviderProfile);
+router.put("/status",    authMiddleware, requireRole("provider"), updateProviderStatus);
+router.put("/location",  authMiddleware, requireRole("provider"), updateProviderLocation);
+router.get("/dashboard", authMiddleware, requireRole("provider"), getProviderDashboardStats);
+router.get("/earnings",  authMiddleware, requireRole("provider"), getProviderEarnings);
 
-// backend/routes/providerRoutes.js - Add this route
-router.get('/debug/providers',debugProviders);
+// ─── Public browsing ───────────────────────────────────────────
+router.get("/", getAllProviders);
+
+// FIX: /:id wildcard is LAST — must come after all named routes
+router.get("/:id", getProviderById);
 
 export default router;
