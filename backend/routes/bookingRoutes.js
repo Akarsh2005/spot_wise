@@ -1,4 +1,3 @@
-// routes/bookingRoutes.js
 import express from "express";
 import {
   createBooking,
@@ -14,14 +13,12 @@ import authMiddleware, { requireRole } from "../middleware/auth_middleware.js";
 const router = express.Router();
 
 // ─── Seeker-only Routes ─────────────────────────────────────────
-// FIX: requireRole('seeker') added — previously any role could call these
 router.post("/",                       authMiddleware, requireRole("seeker"), createBooking);
 router.get("/seeker",                  authMiddleware, requireRole("seeker"), getSeekerBookings);
 router.put("/seeker/cancel/:bookingId",authMiddleware, requireRole("seeker"), cancelBooking);
 router.put("/review/:bookingId",       authMiddleware, requireRole("seeker"), submitReview);
 
 // ─── Provider-only Routes ───────────────────────────────────────
-// FIX: requireRole('provider') added — previously any role could call these
 router.get("/provider",                authMiddleware, requireRole("provider"), getProviderBookings);
 router.put("/provider/:bookingId",     authMiddleware, requireRole("provider"), updateBookingStatus);
 

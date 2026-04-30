@@ -14,25 +14,14 @@ const generateToken = (seeker) => {
 // ✅ Register Seeker
 export const registerSeeker = async (req, res) => {
   try {
-    const { userName, email, contactNumber, password, address } = req.body;
-
-    if (
-      !address ||
-      !address.street ||
-      !address.city ||
-      !address.state ||
-      !address.postalCode ||
-      !address.country
-    ) {
-      return res.status(400).json({ message: "All address fields are required" });
-    }
+    const { userName, email, contactNumber, password } = req.body;
 
     const existingSeeker = await Seeker.findOne({ email });
     if (existingSeeker) {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    const seeker = new Seeker({ userName, email, contactNumber, password, address });
+    const seeker = new Seeker({ userName, email, contactNumber, password });
     await seeker.save();
 
     const token = generateToken(seeker);
@@ -88,10 +77,10 @@ export const getSeekerProfile = async (req, res) => {
 // FIX: Whitelist only safe fields — prevents mass assignment (e.g. role, locationSet)
 export const updateSeekerProfile = async (req, res) => {
   try {
-    const { userName, contactNumber, address } = req.body;
+    const { userName, contactNumber } = req.body;
     const seeker = await Seeker.findByIdAndUpdate(
       req.user.id,
-      { userName, contactNumber, address },
+      { userName, contactNumber },
       { new: true, runValidators: true }
     ).select("-password");
 

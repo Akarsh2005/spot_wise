@@ -1,22 +1,13 @@
-// controllers/bookingController.js
 import Booking from "../models/bookingModel.js";
 import Provider from "../models/providermodel.js";
 import Chat from "../models/chatModel.js";
 
-// ✅ Create Booking (Seeker only — enforced via requireRole in route)
 export const createBooking = async (req, res) => {
   try {
-    const { providerId, serviceType, date, time, address, instructions, totalAmount } = req.body;
+    const { providerId, serviceType, date, time } = req.body;
 
-    if (!providerId || !serviceType || !date || !time || !address)
+    if (!providerId || !serviceType || !date || !time)
       return res.status(400).json({ message: "Missing required fields" });
-
-    if (!address.street || !address.city)
-      return res.status(400).json({ message: "Address street and city are required" });
-
-    // Validate totalAmount
-    if (totalAmount !== undefined && (isNaN(totalAmount) || totalAmount < 0))
-      return res.status(400).json({ message: "Invalid totalAmount" });
 
     const provider = await Provider.findById(providerId);
     if (!provider) return res.status(404).json({ message: "Provider not found" });
@@ -30,14 +21,11 @@ export const createBooking = async (req, res) => {
       serviceType,
       date: new Date(date),
       time,
-      address,
-      instructions,
-      totalAmount: totalAmount || 0,
+      totalCost: 0,
     });
 
     await booking.save();
 
-    // 📡 Real-time notification to provider if online
     const io = req.app.get("io");
     const onlineUsers = req.app.get("onlineUsers");
     const providerSocketId = onlineUsers.get(providerId);
@@ -53,12 +41,10 @@ export const createBooking = async (req, res) => {
 
     res.status(201).json({ message: "Booking created successfully", booking });
   } catch (error) {
-    console.error("Create Booking Error:", error);
     res.status(500).json({ message: "Server error while creating booking" });
   }
 };
 
-// ✅ Get Seeker's Bookings (with pagination)
 export const getSeekerBookings = async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
@@ -66,7 +52,7 @@ export const getSeekerBookings = async (req, res) => {
     if (status) filter.status = status;
 
     const bookings = await Booking.find(filter)
-      .populate("provider", "name skills rate contactNumber rating")
+      .populate("provider", "name skills pricing contactNumber rating")
       .sort({ createdAt: -1 })
       .skip((parseInt(page) - 1) * parseInt(limit))
       .limit(parseInt(limit));
@@ -74,12 +60,10 @@ export const getSeekerBookings = async (req, res) => {
     const total = await Booking.countDocuments(filter);
     res.json({ bookings, total, page: parseInt(page) });
   } catch (error) {
-    console.error("Get Seeker Bookings Error:", error);
     res.status(500).json({ message: "Server error while fetching bookings" });
   }
 };
 
-// ✅ Get Provider's Bookings (with pagination)
 export const getProviderBookings = async (req, res) => {
   try {
     const { page = 1, limit = 20, status } = req.query;
@@ -95,78 +79,53 @@ export const getProviderBookings = async (req, res) => {
     const total = await Booking.countDocuments(filter);
     res.json({ bookings, total, page: parseInt(page) });
   } catch (error) {
-    console.error("Get Provider Bookings Error:", error);
     res.status(500).json({ message: "Server error while fetching bookings" });
   }
 };
 
-// ✅ Update Booking Status (Provider only — enforced via requireRole in route)
 export const updateBookingStatus = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { status, paymentStatus, reason } = req.body;
+    const { status, totalCost } = req.body;
 
-    const validStatuses = ["Accepted", "In Progress", "Completed", "Rejected"];
+    const validStatuses = ["Accepted", "Completed", "Rejected"];
     if (status && !validStatuses.includes(status))
       return res.status(400).json({ message: "Invalid status value" });
 
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    // Ensure this provider owns this booking
     if (booking.provider.toString() !== req.user.id)
       return res.status(403).json({ message: "Unauthorized: not your booking" });
 
     if (status) booking.status = status;
-    if (reason) booking.reason = reason;
-
-    // FIX: Set paidAt timestamp when payment is marked as Paid
-    if (paymentStatus) {
-      booking.paymentStatus = paymentStatus;
-      if (paymentStatus === "Paid" && !booking.paidAt) {
-        booking.paidAt = new Date();
-      }
-    }
+    if (totalCost !== undefined) booking.totalCost = totalCost;
 
     await booking.save();
 
-    // 📡 Notify seeker about the update
     const io = req.app.get("io");
     const onlineUsers = req.app.get("onlineUsers");
-    const seekerId = booking.seeker.toString();
-    const seekerSocket = onlineUsers.get(seekerId);
+    const seekerSocket = onlineUsers.get(booking.seeker.toString());
 
     if (seekerSocket) {
       io.to(seekerSocket).emit("booking_update", {
         bookingId: booking._id,
         status: booking.status,
-        reason: booking.reason || null,
+        totalCost: booking.totalCost
       });
     }
 
-    // 💬 Auto-create chat when provider accepts
     if (status === "Accepted") {
-      let chat = await Chat.findOne({
-        $and: [
-          { "participants.user": booking.seeker },
-          { "participants.user": booking.provider },
-        ],
-      });
+      let chat = await Chat.findOne({ booking: booking._id });
 
       if (!chat) {
         chat = await Chat.create({
-          participants: [
-            { user: booking.seeker, modelRef: "Seeker" },
-            { user: booking.provider, modelRef: "Provider" },
-          ],
+          booking: booking._id,
+          seeker: booking.seeker,
+          provider: booking.provider
         });
-        chat = await Chat.findById(chat._id).populate(
-          "participants.user",
-          "name userName email"
-        );
       }
 
-      // Notify both parties about the new chat
       if (seekerSocket) {
         io.to(seekerSocket).emit("booking_accepted", {
           bookingId: booking._id,
@@ -186,29 +145,25 @@ export const updateBookingStatus = async (req, res) => {
 
     res.json({ message: "Booking updated successfully", booking });
   } catch (error) {
-    console.error("Update Booking Status Error:", error);
     res.status(500).json({ message: "Server error while updating booking" });
   }
 };
 
-// ✅ Cancel Booking (Seeker only — enforced via requireRole in route)
 export const cancelBooking = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    // Ensure this seeker owns this booking
     if (booking.seeker.toString() !== req.user.id)
       return res.status(403).json({ message: "Unauthorized: not your booking" });
 
-    if (["Completed", "Cancelled"].includes(booking.status))
+    if (["Completed", "Rejected"].includes(booking.status))
       return res.status(400).json({ message: "Cannot cancel this booking" });
 
-    booking.status = "Cancelled";
+    booking.status = "Rejected"; // Use Rejected or Cancelled (if added to enum later)
     await booking.save();
 
-    // 📡 Notify provider
     const io = req.app.get("io");
     const onlineUsers = req.app.get("onlineUsers");
     const providerSocket = onlineUsers.get(booking.provider.toString());
@@ -221,17 +176,15 @@ export const cancelBooking = async (req, res) => {
 
     res.json({ message: "Booking cancelled successfully", booking });
   } catch (error) {
-    console.error("Cancel Booking Error:", error);
     res.status(500).json({ message: "Server error while cancelling booking" });
   }
 };
 
-// ✅ Get Booking Details (accessible to both seeker and provider of that booking)
 export const getBookingDetails = async (req, res) => {
   try {
     const { bookingId } = req.params;
     const booking = await Booking.findById(bookingId)
-      .populate("provider", "name skills rate contactNumber rating")
+      .populate("provider", "name skills pricing contactNumber rating")
       .populate("seeker", "userName email contactNumber");
 
     if (!booking) return res.status(404).json({ message: "Booking not found" });
@@ -244,13 +197,10 @@ export const getBookingDetails = async (req, res) => {
 
     res.json(booking);
   } catch (error) {
-    console.error("Get Booking Details Error:", error);
     res.status(500).json({ message: "Server error while fetching booking details" });
   }
 };
 
-// 📝 Submit Review (Seeker only — enforced via requireRole in route)
-// FIX: updateRating() is now called after saving the review
 export const submitReview = async (req, res) => {
   try {
     const { bookingId } = req.params;
@@ -268,31 +218,25 @@ export const submitReview = async (req, res) => {
     if (booking.status !== "Completed")
       return res.status(400).json({ message: "Booking must be completed before reviewing" });
 
-    if (booking.rating)
-      return res.status(400).json({ message: "Review already submitted for this booking" });
-
-    booking.rating = rating;
-    booking.review = review;
-    await booking.save();
-
     const provider = await Provider.findById(booking.provider);
     if (!provider) return res.status(404).json({ message: "Provider not found" });
 
+    // Check if seeker already reviewed this booking
+    const alreadyReviewed = provider.reviews.find(r => r.seeker.toString() === req.user.id);
+    if (alreadyReviewed)
+      return res.status(400).json({ message: "Review already submitted for this provider" });
+
     provider.reviews.push({
-      booking: booking._id,
       seeker: req.user.id,
       rating,
-      review,
+      comment: review,
     });
 
     await provider.save();
-
-    // FIX: Actually call updateRating() — was missing before, rating stayed at 0
     await provider.updateRating();
 
-    res.json({ message: "Review submitted successfully", booking });
+    res.json({ message: "Review submitted successfully" });
   } catch (error) {
-    console.error("Submit Review Error:", error);
     res.status(500).json({ message: "Server error while submitting review" });
   }
 };

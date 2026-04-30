@@ -1,4 +1,3 @@
-// pages/AuthPage.jsx
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -8,38 +7,11 @@ import { connectSocket } from "../utils/socket";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
-// ── AddressFields defined OUTSIDE to prevent re-mount bug ──
-const AddressFields = ({ prefix, onChange }) => (
-  <div className="row g-2">
-    <div className="col-12">
-      <label className="sw-label">Street</label>
-      <input className="sw-input" name={`${prefix}street`} placeholder="Street address" onChange={onChange} required />
-    </div>
-    <div className="col-6">
-      <label className="sw-label">City</label>
-      <input className="sw-input" name={`${prefix}city`} placeholder="City" onChange={onChange} required />
-    </div>
-    <div className="col-6">
-      <label className="sw-label">State</label>
-      <input className="sw-input" name={`${prefix}state`} placeholder="State" onChange={onChange} required />
-    </div>
-    <div className="col-6">
-      <label className="sw-label">Postal Code</label>
-      <input className="sw-input" name={`${prefix}postalCode`} placeholder="Postal code" onChange={onChange} required />
-    </div>
-    <div className="col-6">
-      <label className="sw-label">Country</label>
-      <input className="sw-input" name={`${prefix}country`} placeholder="Country" onChange={onChange} required />
-    </div>
-  </div>
-);
-
-// ── AuthPage ──────────────────────────────────────
 const AuthPage = () => {
   const navigate = useNavigate();
 
   const [mode, setMode] = useState("login");         // "login" | "register"
-  const [registerRole, setRegisterRole] = useState("seeker"); // only used in register
+  const [registerRole, setRegisterRole] = useState("seeker");
   const [loading, setLoading] = useState(false);
 
   // Login fields
@@ -47,19 +19,16 @@ const AuthPage = () => {
 
   // Seeker register fields
   const [seekerData, setSeekerData] = useState({
-    userName: "", email: "", contactNumber: "", password: "",
-    address: { street: "", city: "", state: "", postalCode: "", country: "" },
+    userName: "", email: "", contactNumber: "", password: ""
   });
 
   // Provider register fields
   const [providerData, setProviderData] = useState({
     name: "", email: "", contactNumber: "", password: "",
-    skills: [], rate: "",
-    address: { street: "", city: "", state: "", postalCode: "", country: "" },
+    skills: [], serviceCharge: "", hourlyRate: ""
   });
   const [skillInput, setSkillInput] = useState("");
 
-  // ── After success: save token + redirect by role ──
   const handleAuthSuccess = (token) => {
     saveToken(token);
     connectSocket(token);
@@ -68,20 +37,15 @@ const AuthPage = () => {
     navigate(userRole === "provider" ? "/provider/dashboard" : "/seeker/home");
   };
 
-  // ── LOGIN: try seeker first, then provider ────────
-  // No role selection needed — JWT carries the role
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!loginData.email || !loginData.password)
-      return toast.error("Please fill all fields");
+    if (!loginData.email || !loginData.password) return toast.error("Please fill all fields");
 
     setLoading(true);
     try {
-      // Try seeker login
       const res = await axios.post(`${API}/api/seekers/login`, loginData);
       handleAuthSuccess(res.data.token);
     } catch {
-      // If seeker fails, try provider login
       try {
         const res = await axios.post(`${API}/api/providers/login`, loginData);
         handleAuthSuccess(res.data.token);
@@ -92,7 +56,6 @@ const AuthPage = () => {
     }
   };
 
-  // ── Seeker register ───────────────────────────────
   const handleSeekerRegister = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -106,16 +69,15 @@ const AuthPage = () => {
     }
   };
 
-  // ── Provider register ─────────────────────────────
   const handleProviderRegister = async (e) => {
     e.preventDefault();
-    if (providerData.skills.length === 0)
-      return toast.error("Add at least one skill");
+    if (providerData.skills.length === 0) return toast.error("Add at least one skill");
     setLoading(true);
     try {
       const res = await axios.post(`${API}/api/providers/register`, {
         ...providerData,
-        rate: parseFloat(providerData.rate) || 0,
+        serviceCharge: parseFloat(providerData.serviceCharge) || 0,
+        hourlyRate: parseFloat(providerData.hourlyRate) || 0,
       });
       handleAuthSuccess(res.data.token);
     } catch (err) {
@@ -125,29 +87,9 @@ const AuthPage = () => {
     }
   };
 
-  // ── Change handlers ───────────────────────────────
-  const handleLoginChange = (e) =>
-    setLoginData({ ...loginData, [e.target.name]: e.target.value });
-
-  const handleSeekerChange = (e) => {
-    const { name, value } = e.target;
-    if (name.startsWith("addr_")) {
-      const key = name.replace("addr_", "");
-      setSeekerData({ ...seekerData, address: { ...seekerData.address, [key]: value } });
-    } else {
-      setSeekerData({ ...seekerData, [name]: value });
-    }
-  };
-
-  const handleProviderChange = (e) => {
-    const { name, value } = e.target;
-    if (name.startsWith("addr_")) {
-      const key = name.replace("addr_", "");
-      setProviderData({ ...providerData, address: { ...providerData.address, [key]: value } });
-    } else {
-      setProviderData({ ...providerData, [name]: value });
-    }
-  };
+  const handleLoginChange = (e) => setLoginData({ ...loginData, [e.target.name]: e.target.value });
+  const handleSeekerChange = (e) => setSeekerData({ ...seekerData, [e.target.name]: e.target.value });
+  const handleProviderChange = (e) => setProviderData({ ...providerData, [e.target.name]: e.target.value });
 
   const addSkill = () => {
     const s = skillInput.trim();
@@ -156,181 +98,148 @@ const AuthPage = () => {
     setSkillInput("");
   };
 
-  const removeSkill = (s) =>
-    setProviderData({ ...providerData, skills: providerData.skills.filter((x) => x !== s) });
+  const removeSkill = (s) => setProviderData({ ...providerData, skills: providerData.skills.filter((x) => x !== s) });
 
   return (
-    <div className="auth-page">
-      <div className="auth-card">
+    <div className="min-h-screen flex items-center justify-center p-4">
+      <div className="glass-card w-full max-w-md p-8 relative overflow-hidden">
+        {/* Decorative blobs */}
+        <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
+        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
 
-        {/* Logo */}
-        <div className="auth-logo">Spot<span>Wise</span></div>
-        <p className="auth-subtitle">
-          {mode === "login" ? "Sign in to your account" : "Create a new account"}
-        </p>
+        <div className="relative z-10">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-extrabold tracking-tight text-indigo-600 mb-2">SpotWise</h1>
+            <p className="text-slate-500 font-medium">
+              {mode === "login" ? "Welcome back!" : "Join our community today"}
+            </p>
+          </div>
 
-        {/* ══════════════════════════════════════════
-            LOGIN — no role tabs
-            Just email + password, role auto-detected
-        ══════════════════════════════════════════ */}
-        {mode === "login" && (
-          <form onSubmit={handleLogin}>
-            <div className="form-group">
-              <label className="sw-label">Email</label>
-              <input
-                className="sw-input"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                value={loginData.email}
-                onChange={handleLoginChange}
-                required
-              />
-            </div>
-            <div className="form-group">
-              <label className="sw-label">Password</label>
-              <input
-                className="sw-input"
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                value={loginData.password}
-                onChange={handleLoginChange}
-                required
-              />
-            </div>
-            <button className="btn-primary w-100 mt-2" type="submit" disabled={loading}>
-              {loading ? "Signing in..." : "Sign In"}
-            </button>
-          </form>
-        )}
-
-        {/* ══════════════════════════════════════════
-            REGISTER — role tabs shown here only
-        ══════════════════════════════════════════ */}
-        {mode === "register" && (
-          <>
-            {/* Role selector tabs */}
-            <div className="auth-role-tabs">
-              <button
-                className={`auth-role-tab ${registerRole === "seeker" ? "active" : ""}`}
-                type="button"
-                onClick={() => setRegisterRole("seeker")}
-              >
-                🔍 I'm a Seeker
+          {mode === "login" && (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                <input className="input-field" type="email" name="email" value={loginData.email} onChange={handleLoginChange} required placeholder="you@example.com" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                <input className="input-field" type="password" name="password" value={loginData.password} onChange={handleLoginChange} required placeholder="••••••••" />
+              </div>
+              <button className="btn-primary w-full mt-6" type="submit" disabled={loading}>
+                {loading ? "Signing in..." : "Sign In"}
               </button>
-              <button
-                className={`auth-role-tab ${registerRole === "provider" ? "active" : ""}`}
-                type="button"
-                onClick={() => setRegisterRole("provider")}
-              >
-                🛠 I'm a Provider
-              </button>
-            </div>
+            </form>
+          )}
 
-            {/* ── SEEKER REGISTER FORM ── */}
-            {registerRole === "seeker" && (
-              <form onSubmit={handleSeekerRegister}>
-                <div className="row g-2">
-                  <div className="col-12">
-                    <label className="sw-label">Username</label>
-                    <input className="sw-input" name="userName" placeholder="Your name" onChange={handleSeekerChange} required />
-                  </div>
-                  <div className="col-12">
-                    <label className="sw-label">Email</label>
-                    <input className="sw-input" type="email" name="email" placeholder="Email address" onChange={handleSeekerChange} required />
-                  </div>
-                  <div className="col-6">
-                    <label className="sw-label">Phone</label>
-                    <input className="sw-input" name="contactNumber" placeholder="10-digit number" onChange={handleSeekerChange} required />
-                  </div>
-                  <div className="col-6">
-                    <label className="sw-label">Password</label>
-                    <input className="sw-input" type="password" name="password" placeholder="Min 6 chars" onChange={handleSeekerChange} required />
-                  </div>
-                </div>
-                <div className="sw-divider" />
-                <p className="sw-label mb-2">Address</p>
-                <AddressFields prefix="addr_" onChange={handleSeekerChange} />
-                <button className="btn-primary w-100 mt-3" type="submit" disabled={loading}>
-                  {loading ? "Creating account..." : "Create Seeker Account"}
+          {mode === "register" && (
+            <div className="space-y-6">
+              <div className="flex p-1 bg-slate-100 rounded-xl">
+                <button
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${registerRole === "seeker" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  onClick={() => setRegisterRole("seeker")}
+                >
+                  I'm a Seeker
                 </button>
-              </form>
-            )}
+                <button
+                  className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${registerRole === "provider" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+                  onClick={() => setRegisterRole("provider")}
+                >
+                  I'm a Provider
+                </button>
+              </div>
 
-            {/* ── PROVIDER REGISTER FORM ── */}
-            {registerRole === "provider" && (
-              <form onSubmit={handleProviderRegister}>
-                <div className="row g-2">
-                  <div className="col-12">
-                    <label className="sw-label">Full Name</label>
-                    <input className="sw-input" name="name" placeholder="Your full name" onChange={handleProviderChange} required />
+              {registerRole === "seeker" && (
+                <form onSubmit={handleSeekerRegister} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                    <input className="input-field" name="userName" onChange={handleSeekerChange} required placeholder="John Doe" />
                   </div>
-                  <div className="col-12">
-                    <label className="sw-label">Email</label>
-                    <input className="sw-input" type="email" name="email" placeholder="Email address" onChange={handleProviderChange} required />
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                    <input className="input-field" type="email" name="email" onChange={handleSeekerChange} required placeholder="john@example.com" />
                   </div>
-                  <div className="col-6">
-                    <label className="sw-label">Phone</label>
-                    <input className="sw-input" name="contactNumber" placeholder="10-digit number" onChange={handleProviderChange} required />
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Phone</label>
+                      <input className="input-field" name="contactNumber" onChange={handleSeekerChange} required placeholder="10-digit number" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                      <input className="input-field" type="password" name="password" onChange={handleSeekerChange} required placeholder="Min 6 chars" />
+                    </div>
                   </div>
-                  <div className="col-6">
-                    <label className="sw-label">Password</label>
-                    <input className="sw-input" type="password" name="password" placeholder="Min 6 chars" onChange={handleProviderChange} required />
+                  <button className="btn-primary w-full mt-4" type="submit" disabled={loading}>
+                    {loading ? "Creating Account..." : "Create Account"}
+                  </button>
+                </form>
+              )}
+
+              {registerRole === "provider" && (
+                <form onSubmit={handleProviderRegister} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Full Name</label>
+                    <input className="input-field" name="name" onChange={handleProviderChange} required placeholder="Jane Smith" />
                   </div>
-                  <div className="col-6">
-                    <label className="sw-label">Hourly Rate (₹)</label>
-                    <input className="sw-input" type="number" name="rate" placeholder="e.g. 500" onChange={handleProviderChange} required />
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
+                    <input className="input-field" type="email" name="email" onChange={handleProviderChange} required placeholder="jane@example.com" />
                   </div>
-                  <div className="col-6">
-                    <label className="sw-label">Skills</label>
-                    <div className="d-flex gap-1">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Phone</label>
+                      <input className="input-field" name="contactNumber" onChange={handleProviderChange} required placeholder="10-digit number" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Password</label>
+                      <input className="input-field" type="password" name="password" onChange={handleProviderChange} required placeholder="Min 6 chars" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Service Charge (₹)</label>
+                      <input className="input-field" type="number" name="serviceCharge" onChange={handleProviderChange} required placeholder="e.g. 200" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-semibold text-slate-700 mb-1">Hourly Rate (₹)</label>
+                      <input className="input-field" type="number" name="hourlyRate" onChange={handleProviderChange} required placeholder="e.g. 500" />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 mb-1">Skills</label>
+                    <div className="flex gap-2">
                       <input
-                        className="sw-input"
+                        className="input-field"
                         value={skillInput}
                         placeholder="e.g. Plumber"
                         onChange={(e) => setSkillInput(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
                       />
-                      <button type="button" className="btn-outline px-3" onClick={addSkill}>+</button>
+                      <button type="button" className="btn-secondary px-4" onClick={addSkill}>Add</button>
                     </div>
-                  </div>
-                  {providerData.skills.length > 0 && (
-                    <div className="col-12">
-                      <div className="d-flex flex-wrap gap-1 mt-1">
+                    {providerData.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mt-3">
                         {providerData.skills.map((s) => (
-                          <span key={s} className="skill-tag" style={{ cursor: "pointer" }} onClick={() => removeSkill(s)}>
+                          <span key={s} onClick={() => removeSkill(s)} className="bg-indigo-100 text-indigo-700 text-xs font-semibold px-3 py-1 rounded-full cursor-pointer hover:bg-red-100 hover:text-red-700 transition-colors">
                             {s} ✕
                           </span>
                         ))}
                       </div>
-                    </div>
-                  )}
-                </div>
-                <div className="sw-divider" />
-                <p className="sw-label mb-2">Address</p>
-                <AddressFields prefix="addr_" onChange={handleProviderChange} />
-                <button className="btn-primary w-100 mt-3" type="submit" disabled={loading}>
-                  {loading ? "Creating account..." : "Create Provider Account"}
-                </button>
-              </form>
-            )}
-          </>
-        )}
-
-        {/* Toggle login / register */}
-        <div className="auth-toggle">
-          {mode === "login" ? (
-            <>Don't have an account?{" "}
-              <span onClick={() => setMode("register")}>Register here</span>
-            </>
-          ) : (
-            <>Already have an account?{" "}
-              <span onClick={() => setMode("login")}>Sign in</span>
-            </>
+                    )}
+                  </div>
+                  <button className="btn-primary w-full mt-4" type="submit" disabled={loading}>
+                    {loading ? "Creating Account..." : "Create Provider Account"}
+                  </button>
+                </form>
+              )}
+            </div>
           )}
-        </div>
 
+          <div className="mt-8 text-center text-sm font-medium text-slate-600">
+            {mode === "login" ? (
+              <p>Don't have an account? <button onClick={() => setMode("register")} className="text-indigo-600 hover:text-indigo-800 transition-colors ml-1">Register here</button></p>
+            ) : (
+              <p>Already have an account? <button onClick={() => setMode("login")} className="text-indigo-600 hover:text-indigo-800 transition-colors ml-1">Sign in</button></p>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

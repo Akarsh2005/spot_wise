@@ -1,4 +1,3 @@
-// pages/SeekerHomePage.jsx
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -21,7 +20,6 @@ const SeekerHomePage = () => {
 
   const user = decodeToken();
 
-  // ── Fetch nearby providers ────────────────────────
   const fetchProviders = async (lat, lng, skill) => {
     setLoading(true);
     try {
@@ -46,7 +44,6 @@ const SeekerHomePage = () => {
     }
   };
 
-  // ── Init TomTom map ───────────────────────────────
   const initMap = (lat, lng) => {
     if (!window.tt || mapInstanceRef.current) return;
 
@@ -57,18 +54,15 @@ const SeekerHomePage = () => {
       zoom: 13,
     });
 
-    // Blue marker for seeker's own location
-    new window.tt.Marker({ color: "#2563eb" })
+    new window.tt.Marker({ color: "#4f46e5" }) // primary color
       .setLngLat([lng, lat])
-      .setPopup(new window.tt.Popup().setHTML("<strong>You are here</strong>"))
+      .setPopup(new window.tt.Popup().setHTML("<strong style='font-family:Inter,sans-serif;color:#1e293b;padding:4px;'>You are here</strong>"))
       .addTo(map);
 
     mapInstanceRef.current = map;
   };
 
-  // ── Add provider pins on map ──────────────────────
   const addProviderMarkers = (providerList) => {
-    // Remove old markers
     markersRef.current.forEach((m) => m.remove());
     markersRef.current = [];
 
@@ -76,22 +70,24 @@ const SeekerHomePage = () => {
       if (!p.location?.coordinates) return;
       const [lng, lat] = p.location.coordinates;
 
+      const hourlyRate = p.pricing?.hourlyRate || 0;
+
       const popupHTML = `
-        <div class="map-popup">
-          <div class="map-popup-name">${p.name}</div>
-          <div style="margin-bottom:6px;">
-            ${p.skills.map((s) => `<span class="skill-tag">${s}</span>`).join(" ")}
+        <div style="font-family: 'Inter', sans-serif; padding: 8px; min-width: 180px;">
+          <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 4px;">${p.name}</div>
+          <div style="margin-bottom: 8px;">
+            ${p.skills.slice(0,2).map((s) => `<span style="background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; display: inline-block;">${s}</span>`).join("")}
           </div>
-          <div style="font-size:0.82rem;color:#475569;margin-bottom:10px;">
-            ⭐ ${p.rating?.toFixed(1) || "New"} &nbsp;|&nbsp; ₹${p.rate}/hr
+          <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px; font-weight: 500;">
+            ⭐ ${p.rating?.toFixed(1) || "New"} &nbsp;|&nbsp; ₹${hourlyRate}/hr
           </div>
           <button
             onclick="window.navigateToBooking('${p._id}')"
-            style="width:100%;padding:8px;background:#2563eb;color:white;border:none;border-radius:8px;cursor:pointer;font-size:0.8rem;font-weight:500;"
+            style="width: 100%; padding: 8px; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: all 0.2s;"
           >Book Now</button>
         </div>`;
 
-      const marker = new window.tt.Marker({ color: "#f59e0b" })
+      const marker = new window.tt.Marker({ color: "#f59e0b" }) // amber for providers
         .setLngLat([lng, lat])
         .setPopup(new window.tt.Popup({ offset: 30 }).setHTML(popupHTML))
         .addTo(mapInstanceRef.current);
@@ -100,58 +96,37 @@ const SeekerHomePage = () => {
     });
   };
 
-  // ── Load TomTom SDK script once ───────────────────
   useEffect(() => {
     if (window.tt) return;
-
     const script = document.createElement("script");
-    script.src =
-      "https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js";
+    script.src = "https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps-web.min.js";
     script.async = true;
     document.head.appendChild(script);
 
     const link = document.createElement("link");
     link.rel = "stylesheet";
-    link.href =
-      "https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css";
+    link.href = "https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/6.25.0/maps/maps.css";
     document.head.appendChild(link);
   }, []);
 
-  // ── Get GPS on mount ──────────────────────────────
-  // Empty dep array [] — runs once only, no circular deps
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
-      async (pos) => {
+      (pos) => {
         const { latitude, longitude } = pos.coords;
         setUserLocation({ latitude, longitude });
 
-        // Update seeker location on backend (best effort)
-        try {
-          await axios.put(
-            `${API}/api/seekers/location`,
-            { latitude, longitude },
-            { headers: { Authorization: `Bearer ${getToken()}` } }
-          );
-        } catch {
-          // ignore — not critical if this fails
-        }
-
-        // Wait a moment for TomTom SDK to load then init map
         setTimeout(() => {
           initMap(latitude, longitude);
         }, 800);
 
-        // Fetch providers right away
         fetchProviders(latitude, longitude, "");
       },
       () => {
         toast.error("Unable to get your location. Please allow location access.");
       }
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Global function called by map popup button ────
   useEffect(() => {
     window.navigateToBooking = (providerId) => {
       navigate(`/seeker/book/${providerId}`);
@@ -161,154 +136,146 @@ const SeekerHomePage = () => {
     };
   }, [navigate]);
 
-  // ── Search submit ─────────────────────────────────
   const handleSearch = (e) => {
     e.preventDefault();
     if (!userLocation) return toast.error("Waiting for your location...");
     fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill);
   };
 
-  // ── Logout ────────────────────────────────────────
   const handleLogout = () => {
     logout();
     navigate("/auth");
   };
 
   return (
-    <div className="page-wrapper">
-
-      {/* Navbar */}
-      <nav className="sw-navbar">
-        <div className="sw-navbar-brand">Spot<span>Wise</span></div>
-        <div className="sw-nav-links">
-          <span className="sw-nav-link active">Home</span>
-          <span
-            className="sw-nav-link"
+    <div className="pb-12">
+      {/* Navbar - Glassmorphism */}
+      <nav className="glass sticky top-0 z-50 px-6 py-4 mx-4 mt-4 mb-8 flex justify-between items-center">
+        <div className="text-2xl font-extrabold text-indigo-600 tracking-tight">
+          Spot<span className="text-slate-800">Wise</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <span className="font-semibold text-indigo-600 cursor-pointer">Explore Map</span>
+          <span 
+            className="font-medium text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
             onClick={() => navigate("/seeker/bookings")}
-            style={{ cursor: "pointer" }}
           >
             My Bookings
           </span>
-          <div className="sw-nav-user">
-            <div className="sw-avatar">
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
               {user?.id?.[0]?.toUpperCase() || "S"}
             </div>
-            <button
-              className="btn-outline"
-              style={{ padding: "6px 14px", fontSize: "0.8rem" }}
-              onClick={handleLogout}
-            >
+            <button onClick={handleLogout} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
               Logout
             </button>
           </div>
         </div>
       </nav>
 
-      {/* Page content */}
       <div className="page-container">
-
-        {/* Search bar */}
-        <div className="mb-3">
-          <form onSubmit={handleSearch} className="d-flex gap-2">
-            <div className="search-bar-wrapper flex-grow-1">
-              <span className="search-bar-icon">🔍</span>
+        
+        {/* Search Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-slate-800 mb-2">Find nearby professionals</h1>
+          <p className="text-slate-500 mb-6">Discover top-rated experts instantly around your location.</p>
+          
+          <form onSubmit={handleSearch} className="flex gap-3">
+            <div className="relative flex-1">
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+                🔍
+              </div>
               <input
-                className="search-bar"
+                className="input-field pl-12 h-14 text-lg shadow-sm"
                 type="text"
-                placeholder="Search by service... e.g. Plumber, Electrician, Cleaner"
+                placeholder="Search by service... e.g. Plumber, Electrician"
                 value={searchSkill}
                 onChange={(e) => setSearchSkill(e.target.value)}
               />
             </div>
-            <button
-              className="btn-primary px-4"
-              type="submit"
-              disabled={loading}
-            >
+            <button className="btn-primary px-8 h-14 text-lg" type="submit" disabled={loading}>
               {loading ? "Searching..." : "Search"}
             </button>
           </form>
         </div>
 
-        {/* Map */}
-        <div
-          className="map-container mb-3"
-          ref={mapRef}
-          id="tomtom-map"
-        >
+        {/* The Map */}
+        <div className="glass-card overflow-hidden h-[400px] mb-10 relative">
+          <div ref={mapRef} className="w-full h-full" />
           {!userLocation && (
-            <div className="d-flex align-items-center justify-content-center h-100">
-              <div className="text-center text-muted">
-                <div className="sw-spinner mx-auto mb-2" />
-                <p style={{ fontSize: "0.875rem" }}>Getting your location...</p>
-              </div>
+            <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center z-10">
+              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mb-4"></div>
+              <p className="font-semibold text-slate-600">Accessing GPS Location...</p>
             </div>
           )}
         </div>
 
-        {/* Results header */}
-        <div className="d-flex align-items-center justify-content-between mb-3">
-          <h6
-            className="m-0"
-            style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}
-          >
-            {loading
-              ? "Searching..."
-              : `${providers.length} provider${providers.length !== 1 ? "s" : ""} found nearby`}
-          </h6>
+        {/* Results Info */}
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-2xl font-bold text-slate-800">
+            {loading ? "Searching..." : `${providers.length} Provider${providers.length !== 1 ? 's' : ''} Nearby`}
+          </h2>
           {userLocation && (
-            <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-              📍 Within 5km of your location
+            <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
+              📍 Within 5km radius
             </span>
           )}
         </div>
 
-        {/* Provider list */}
+        {/* Provider Grid */}
         {loading ? (
-          <div className="sw-spinner-wrapper">
-            <div className="sw-spinner" />
+          <div className="flex justify-center py-12">
+            <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
           </div>
         ) : providers.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state-icon">🔍</div>
-            <div className="empty-state-text">
-              No providers found nearby.{" "}
-              {searchSkill
-                ? "Try a different service."
-                : "Make sure your location is enabled."}
-            </div>
+          <div className="glass-card p-12 text-center">
+            <div className="text-5xl mb-4">🔍</div>
+            <h3 className="text-xl font-bold text-slate-700 mb-2">No providers found</h3>
+            <p className="text-slate-500">
+              {searchSkill ? "Try searching for a different service." : "There are currently no online providers in your area."}
+            </p>
           </div>
         ) : (
-          <div className="row g-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {providers.map((p) => (
-              <div className="col-md-6 col-lg-4" key={p._id}>
-                <div
-                  className="provider-card h-100"
-                  onClick={() => navigate(`/seeker/book/${p._id}`)}
-                >
-                  <div className="provider-avatar">
+              <div 
+                key={p._id} 
+                onClick={() => navigate(`/seeker/book/${p._id}`)}
+                className="glass-card p-6 cursor-pointer hover:-translate-y-1 transition-transform duration-300 group"
+              >
+                <div className="flex items-start gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-2xl font-bold shadow-lg shadow-indigo-200">
                     {p.name?.[0]?.toUpperCase() || "P"}
                   </div>
-                  <div className="provider-info">
-                    <div className="provider-name">{p.name}</div>
-                    <div className="provider-skills">
-                      {p.skills.slice(0, 3).map((s) => (
-                        <span key={s} className="skill-tag">{s}</span>
-                      ))}
-                      {p.skills.length > 3 && (
-                        <span className="skill-tag">+{p.skills.length - 3}</span>
-                      )}
+                  <div>
+                    <h3 className="font-bold text-lg text-slate-800 group-hover:text-indigo-600 transition-colors">{p.name}</h3>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      <span className="text-xs font-semibold text-green-600 uppercase tracking-wider">Online</span>
                     </div>
-                    <div className="provider-rate">
-                      ⭐ {p.rating?.toFixed(1) || "New"} &nbsp;|&nbsp;
-                      <strong>₹{p.rate}/hr</strong>
-                    </div>
-                    <div className="mt-2 d-flex align-items-center gap-2">
-                      <span className="online-dot online" />
-                      <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                        Online
-                      </span>
-                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {p.skills.slice(0, 3).map((s) => (
+                    <span key={s} className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">
+                      {s}
+                    </span>
+                  ))}
+                  {p.skills.length > 3 && (
+                    <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">
+                      +{p.skills.length - 3}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-slate-100">
+                  <div className="font-medium text-slate-600">
+                    <span className="text-yellow-500 mr-1">⭐</span>
+                    {p.rating?.toFixed(1) || "New"}
+                  </div>
+                  <div className="font-bold text-indigo-600 text-lg">
+                    ₹{p.pricing?.hourlyRate || 0}<span className="text-sm text-slate-500 font-medium">/hr</span>
                   </div>
                 </div>
               </div>

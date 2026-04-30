@@ -132,20 +132,18 @@ io.on("connection", (socket) => {
   // FIX: Validate chat membership before broadcasting typing events
   socket.on("typing", async (data) => {
     try {
-      const chat = await Chat.findById(data.chatId).select("participants");
-      const isMember = chat?.participants.some(
-        (p) => p.user.toString() === socket.user.id
-      );
+      const chat = await Chat.findById(data.chatId).select("seeker provider");
+      if (!chat) return;
+      const isMember = chat.seeker.toString() === socket.user.id || chat.provider.toString() === socket.user.id;
       if (isMember) socket.to(data.chatId).emit("typing", data);
     } catch (_) {}
   });
 
   socket.on("stop_typing", async (data) => {
     try {
-      const chat = await Chat.findById(data.chatId).select("participants");
-      const isMember = chat?.participants.some(
-        (p) => p.user.toString() === socket.user.id
-      );
+      const chat = await Chat.findById(data.chatId).select("seeker provider");
+      if (!chat) return;
+      const isMember = chat.seeker.toString() === socket.user.id || chat.provider.toString() === socket.user.id;
       if (isMember) socket.to(data.chatId).emit("stop_typing", data);
     } catch (_) {}
   });

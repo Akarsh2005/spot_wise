@@ -1,79 +1,52 @@
-// controllers/chatController.js
 import Chat from "../models/chatModel.js";
 import Booking from "../models/bookingModel.js";
 
-// ✅ Access or create a chat between seeker and provider
-// FIX: Only allow chat if an ACTIVE booking exists (Accepted or In Progress)
-// FIX: Old completed bookings no longer grant indefinite chat access
 export const accessChat = async (req, res) => {
-  const { userId } = req.body;
-
-  if (!userId) {
-    return res.status(400).json({ message: "User ID is required" });
-  }
+  const { userId, bookingId } = req.body;
 
   try {
-    // Check for an active booking between these two users
-    const activeBooking = await Booking.findOne({
-      $or: [
-        { seeker: req.user.id, provider: userId },
-        { seeker: userId, provider: req.user.id },
-      ],
-      status: { $in: ["Accepted", "In Progress"] },
-    }).sort({ createdAt: -1 }); // Most recent active booking
-
-    if (!activeBooking) {
-      return res.status(403).json({
-        message: "No active booking exists between these users",
-      });
+    let chat;
+    if (bookingId) {
+       chat = await Chat.findOne({ booking: bookingId })
+         .populate("seeker", "userName email")
+         .populate("provider", "name email");
+    } else if (userId) {
+       chat = await Chat.findOne({
+         $or: [
+           { seeker: req.user.id, provider: userId },
+           { seeker: userId, provider: req.user.id }
+         ]
+       })
+         .populate("seeker", "userName email")
+         .populate("provider", "name email");
+    } else {
+       return res.status(400).json({ message: "userId or bookingId is required" });
     }
 
-    // Find or create the chat
-    let chat = await Chat.findOne({
-      $and: [
-        { "participants.user": req.user.id },
-        { "participants.user": userId },
-      ],
-    })
-      .populate("participants.user", "name userName email")
-      .populate("latestMessage");
+    if (!chat) return res.status(404).json({ message: "Chat not found" });
 
-    if (!chat) {
-      const currentUserModelRef = req.user.role === "seeker" ? "Seeker" : "Provider";
-      const otherUserModelRef = req.user.role === "seeker" ? "Provider" : "Seeker";
-
-      chat = await Chat.create({
-        participants: [
-          { user: req.user.id, modelRef: currentUserModelRef },
-          { user: userId, modelRef: otherUserModelRef },
-        ],
-      });
-
-      chat = await Chat.findById(chat._id)
-        .populate("participants.user", "name userName email")
-        .populate("latestMessage");
+    if (chat.seeker._id.toString() !== req.user.id && chat.provider._id.toString() !== req.user.id) {
+       return res.status(403).json({ message: "Unauthorized" });
     }
 
     res.json(chat);
   } catch (error) {
-    console.error("Access Chat Error:", error);
     res.status(500).json({ message: "Server error while accessing chat" });
   }
 };
 
-// ✅ Fetch all chats for the logged-in user
 export const fetchChats = async (req, res) => {
   try {
     const chats = await Chat.find({
-      "participants.user": req.user.id,
+      $or: [{ seeker: req.user.id }, { provider: req.user.id }]
     })
-      .populate("participants.user", "name userName email")
-      .populate("latestMessage")
+      .populate("seeker", "userName email")
+      .populate("provider", "name email")
+      .populate("booking", "serviceType status")
       .sort({ updatedAt: -1 });
 
     res.json(chats);
   } catch (error) {
-    console.error("Fetch Chats Error:", error);
     res.status(500).json({ message: "Server error while fetching chats" });
   }
 };

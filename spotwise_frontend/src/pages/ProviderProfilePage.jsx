@@ -1,4 +1,3 @@
-// pages/ProviderProfilePage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -16,12 +15,10 @@ const ProviderProfilePage = () => {
   const [skillInput, setSkillInput] = useState("");
 
   const [formData, setFormData] = useState({
-    name: "", contactNumber: "", rate: "",
-    skills: [],
-    address: { street: "", city: "", state: "", postalCode: "", country: "" },
+    name: "", contactNumber: "", serviceCharge: "", hourlyRate: "",
+    skills: []
   });
 
-  // ── Fetch profile ─────────────────────────────────
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -32,9 +29,9 @@ const ProviderProfilePage = () => {
         setFormData({
           name: res.data.name || "",
           contactNumber: res.data.contactNumber || "",
-          rate: res.data.rate || "",
+          serviceCharge: res.data.pricing?.serviceCharge || "",
+          hourlyRate: res.data.pricing?.hourlyRate || "",
           skills: res.data.skills || [],
-          address: res.data.address || { street: "", city: "", state: "", postalCode: "", country: "" },
         });
       } catch {
         toast.error("Failed to load profile");
@@ -45,18 +42,8 @@ const ProviderProfilePage = () => {
     fetch();
   }, []);
 
-  // ── Handle input changes ──────────────────────────
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    if (name.startsWith("addr_")) {
-      const key = name.replace("addr_", "");
-      setFormData({ ...formData, address: { ...formData.address, [key]: value } });
-    } else {
-      setFormData({ ...formData, [name]: value });
-    }
-  };
+  const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  // ── Skills ────────────────────────────────────────
   const addSkill = () => {
     const s = skillInput.trim();
     if (s && !formData.skills.includes(s)) {
@@ -68,7 +55,6 @@ const ProviderProfilePage = () => {
   const removeSkill = (skill) =>
     setFormData({ ...formData, skills: formData.skills.filter((s) => s !== skill) });
 
-  // ── Save profile ──────────────────────────────────
   const handleSave = async (e) => {
     e.preventDefault();
     if (formData.skills.length === 0) return toast.error("Add at least one skill");
@@ -76,7 +62,11 @@ const ProviderProfilePage = () => {
     try {
       const res = await axios.put(
         `${API}/api/providers/profile`,
-        { ...formData, rate: parseFloat(formData.rate) || 0 },
+        { 
+          ...formData, 
+          serviceCharge: parseFloat(formData.serviceCharge) || 0,
+          hourlyRate: parseFloat(formData.hourlyRate) || 0 
+        },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       setProfile(res.data.provider);
@@ -88,7 +78,6 @@ const ProviderProfilePage = () => {
     }
   };
 
-  // ── Update GPS location ───────────────────────────
   const handleUpdateLocation = () => {
     if (!navigator.geolocation) return toast.error("Geolocation not supported");
     setUpdatingLocation(true);
@@ -100,7 +89,7 @@ const ProviderProfilePage = () => {
             { latitude: coords.latitude, longitude: coords.longitude },
             { headers: { Authorization: `Bearer ${getToken()}` } }
           );
-          toast.success("Location updated successfully!");
+          toast.success("Location synced successfully! You are now visible on the map.");
         } catch {
           toast.error("Failed to update location");
         } finally {
@@ -115,174 +104,151 @@ const ProviderProfilePage = () => {
   };
 
   if (loading) return (
-    <div className="page-wrapper">
-      <div className="sw-spinner-wrapper" style={{ paddingTop: 100 }}><div className="sw-spinner" /></div>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
     </div>
   );
 
   return (
-    <div className="page-wrapper">
+    <div className="pb-12">
 
-      {/* Navbar */}
-      <nav className="sw-navbar">
-        <div className="sw-navbar-brand">Spot<span>Wise</span></div>
-        <div className="sw-nav-links">
-          <span className="sw-nav-link" onClick={() => navigate("/provider/dashboard")} style={{ cursor: "pointer" }}>
+      <nav className="glass sticky top-0 z-50 px-6 py-4 mx-4 mt-4 mb-8 flex justify-between items-center">
+        <div className="text-2xl font-extrabold text-indigo-600 tracking-tight">
+          Spot<span className="text-slate-800">Wise</span> <span className="text-sm font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md ml-2">Provider</span>
+        </div>
+        <div className="flex items-center gap-6">
+          <span 
+            className="font-medium text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
+            onClick={() => navigate("/provider/dashboard")}
+          >
             Dashboard
           </span>
-          <span className="sw-nav-link active">Profile</span>
-          <div className="sw-nav-user">
-            <div className="sw-avatar">{profile?.name?.[0]?.toUpperCase() || "P"}</div>
-            <button className="btn-outline" style={{ padding: "6px 14px", fontSize: "0.8rem" }}
-              onClick={() => { logout(); navigate("/auth"); }}>
+          <span className="font-semibold text-indigo-600 cursor-pointer">
+            Profile & Settings
+          </span>
+          <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
+              {profile?.name?.[0]?.toUpperCase() || "P"}
+            </div>
+            <button onClick={() => { logout(); navigate("/auth"); }} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
               Logout
             </button>
           </div>
         </div>
       </nav>
 
-      <div className="page-container" style={{ maxWidth: 700 }}>
+      <div className="page-container max-w-3xl">
 
-        <div className="page-header">
-          <h1 className="page-title">My Profile</h1>
+        <div className="flex justify-between items-end mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-800 mb-2">My Profile</h1>
+            <p className="text-slate-500">Manage your public information and pricing</p>
+          </div>
           <button
-            className={`btn-outline ${updatingLocation ? "opacity-50" : ""}`}
+            className={`btn-secondary flex items-center gap-2 ${updatingLocation ? "opacity-50" : ""}`}
             onClick={handleUpdateLocation}
             disabled={updatingLocation}
           >
-            📍 {updatingLocation ? "Updating..." : "Update Location"}
+            📍 {updatingLocation ? "Syncing..." : "Sync GPS Location"}
           </button>
         </div>
 
-        {/* Profile summary */}
         {profile && (
-          <div className="sw-card mb-4 d-flex align-items-center gap-3">
-            <div className="provider-avatar" style={{ width: 56, height: 56, fontSize: "1.4rem" }}>
+          <div className="glass-card p-6 mb-8 flex items-center gap-6 border-l-4 border-l-green-500">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold shadow-lg">
               {profile.name?.[0]?.toUpperCase()}
             </div>
-            <div>
-              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 600, fontSize: "1rem" }}>
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
                 {profile.name}
-              </div>
-              <div style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>
-                ⭐ {profile.rating?.toFixed(1) || "No reviews"} rating
-                &nbsp;·&nbsp;
-                {profile.reviews?.length || 0} review{profile.reviews?.length !== 1 ? "s" : ""}
-                &nbsp;·&nbsp;
-                <span className={`online-dot ${profile.status === "online" ? "online" : "offline"}`} />
-                {profile.status}
+                {profile.verified && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide flex items-center gap-1">✓ Verified</span>}
+              </h2>
+              <div className="flex gap-4 mt-2 text-sm font-medium text-slate-500">
+                <span>⭐ {profile.rating?.toFixed(1) || "New"} Rating</span>
+                <span>•</span>
+                <span>{profile.reviews?.length || 0} Reviews</span>
+                <span>•</span>
+                <span className={`flex items-center gap-1 ${profile.status === "online" ? "text-green-600" : "text-slate-400"}`}>
+                  <span className={`w-2 h-2 rounded-full ${profile.status === "online" ? "bg-green-500 animate-pulse" : "bg-slate-300"}`}></span>
+                  {profile.status === "online" ? "Online" : "Offline"}
+                </span>
               </div>
             </div>
-            {profile.verified && (
-              <span className="ms-auto skill-tag" style={{ background: "#D1FAE5", color: "#059669" }}>
-                ✓ Verified
-              </span>
-            )}
           </div>
         )}
 
-        {/* Edit form */}
-        <div className="sw-card">
-          <h6 className="mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>
-            Edit Profile
-          </h6>
+        <div className="glass-card p-8 mb-8">
+          <h2 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-4 mb-6">Profile Details</h2>
 
-          <form onSubmit={handleSave}>
-            <div className="row g-3">
-              <div className="col-md-6">
-                <label className="sw-label">Full Name *</label>
-                <input className="sw-input" name="name" value={formData.name} onChange={handleChange} required />
+          <form onSubmit={handleSave} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Full Name *</label>
+                <input className="input-field" name="name" value={formData.name} onChange={handleChange} required />
               </div>
-              <div className="col-md-6">
-                <label className="sw-label">Phone Number</label>
-                <input className="sw-input" name="contactNumber" value={formData.contactNumber} onChange={handleChange} />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Contact Number</label>
+                <input className="input-field" name="contactNumber" value={formData.contactNumber} onChange={handleChange} />
               </div>
-              <div className="col-md-6">
-                <label className="sw-label">Hourly Rate (₹)</label>
-                <input className="sw-input" type="number" name="rate" value={formData.rate} onChange={handleChange} min="0" />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Service Charge (₹)</label>
+                <input className="input-field" type="number" name="serviceCharge" value={formData.serviceCharge} onChange={handleChange} min="0" placeholder="Base fee" />
               </div>
-
-              {/* Skills */}
-              <div className="col-12">
-                <label className="sw-label">Skills</label>
-                <div className="d-flex gap-2 mb-2">
-                  <input
-                    className="sw-input"
-                    value={skillInput}
-                    placeholder="Type a skill and press Enter or +"
-                    onChange={(e) => setSkillInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
-                  />
-                  <button type="button" className="btn-outline px-3" onClick={addSkill}>+</button>
-                </div>
-                <div className="d-flex flex-wrap gap-2">
-                  {formData.skills.map((s) => (
-                    <span key={s} className="skill-tag d-flex align-items-center gap-1">
-                      {s}
-                      <span style={{ cursor: "pointer", marginLeft: 4 }} onClick={() => removeSkill(s)}>✕</span>
-                    </span>
-                  ))}
-                  {formData.skills.length === 0 && (
-                    <span style={{ fontSize: "0.82rem", color: "var(--text-muted)" }}>No skills added yet</span>
-                  )}
-                </div>
-              </div>
-
-              {/* Address */}
-              <div className="col-12">
-                <label className="sw-label">Address</label>
-              </div>
-              <div className="col-12">
-                <input className="sw-input" name="addr_street" value={formData.address.street} placeholder="Street" onChange={handleChange} />
-              </div>
-              <div className="col-6">
-                <input className="sw-input" name="addr_city" value={formData.address.city} placeholder="City" onChange={handleChange} />
-              </div>
-              <div className="col-6">
-                <input className="sw-input" name="addr_state" value={formData.address.state} placeholder="State" onChange={handleChange} />
-              </div>
-              <div className="col-6">
-                <input className="sw-input" name="addr_postalCode" value={formData.address.postalCode} placeholder="Postal Code" onChange={handleChange} />
-              </div>
-              <div className="col-6">
-                <input className="sw-input" name="addr_country" value={formData.address.country} placeholder="Country" onChange={handleChange} />
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Hourly Rate (₹)</label>
+                <input className="input-field" type="number" name="hourlyRate" value={formData.hourlyRate} onChange={handleChange} min="0" placeholder="Rate per hour" />
               </div>
             </div>
 
-            <button className="btn-primary w-100 mt-4" type="submit" disabled={saving}>
-              {saving ? "Saving..." : "Save Changes"}
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Skills *</label>
+              <div className="flex gap-2 mb-3">
+                <input
+                  className="input-field flex-1"
+                  value={skillInput}
+                  placeholder="Type a skill and press Enter..."
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addSkill())}
+                />
+                <button type="button" className="btn-secondary px-6" onClick={addSkill}>Add</button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {formData.skills.map((s) => (
+                  <span key={s} className="bg-indigo-50 text-indigo-700 text-sm font-semibold px-3 py-1.5 rounded-full flex items-center gap-2 shadow-sm border border-indigo-100">
+                    {s}
+                    <button type="button" className="hover:text-red-500 font-bold w-4 h-4 flex items-center justify-center rounded-full hover:bg-indigo-100 transition-colors" onClick={() => removeSkill(s)}>✕</button>
+                  </span>
+                ))}
+                {formData.skills.length === 0 && <span className="text-sm text-slate-400 italic">No skills added yet.</span>}
+              </div>
+            </div>
+
+            <button className="btn-primary w-full py-3 text-lg mt-4" type="submit" disabled={saving}>
+              {saving ? "Saving Changes..." : "Save Changes"}
             </button>
           </form>
         </div>
 
-        {/* Reviews */}
         {profile?.reviews?.length > 0 && (
-          <div className="sw-card mt-4">
-            <h6 className="mb-3" style={{ fontFamily: "var(--font-heading)", fontWeight: 600 }}>
-              Reviews ({profile.reviews.length})
-            </h6>
-            {profile.reviews.map((r, i) => (
-              <div key={i} style={{
-                padding: "12px 0",
-                borderBottom: i < profile.reviews.length - 1 ? "1px solid var(--border-light)" : "none"
-              }}>
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <div className="star-rating">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <span key={s} className={`star readonly ${s <= r.rating ? "filled" : ""}`}>★</span>
-                    ))}
+          <div className="glass-card p-8">
+            <h2 className="text-xl font-bold text-slate-800 border-b border-slate-100 pb-4 mb-6">Client Reviews ({profile.reviews.length})</h2>
+            <div className="space-y-6">
+              {profile.reviews.map((r, i) => (
+                <div key={i} className={`pb-6 ${i < profile.reviews.length - 1 ? 'border-b border-slate-100' : ''}`}>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="flex gap-1">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <span key={s} className={s <= r.rating ? "text-yellow-400" : "text-slate-200"}>★</span>
+                      ))}
+                    </div>
+                    <span className="text-xs font-medium text-slate-400 bg-slate-100 px-2 py-0.5 rounded-md">
+                      {new Date(r.createdAt).toLocaleDateString("en-IN", {day: 'numeric', month: 'short', year: 'numeric'})}
+                    </span>
                   </div>
-                  <span style={{ fontSize: "0.78rem", color: "var(--text-muted)" }}>
-                    {new Date(r.createdAt).toLocaleDateString("en-IN")}
-                  </span>
+                  {r.review && <p className="text-sm text-slate-600 bg-slate-50 p-4 rounded-xl border border-slate-100 italic">"{r.review}"</p>}
                 </div>
-                {r.review && (
-                  <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", margin: 0 }}>
-                    "{r.review}"
-                  </p>
-                )}
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 

@@ -1,18 +1,12 @@
 // src/App.jsx
 import React, { useEffect } from "react";
-import "bootstrap/dist/js/bootstrap.bundle.min.js";
-import "bootstrap/dist/css/bootstrap.min.css";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { Routes, Route, Navigate } from "react-router-dom";
 
-// Theme — single CSS for all pages
-import "./theme/app_theme.css";
-
 // Utils
-import { isLoggedIn, getRole } from "./utils/auth";
+import { isLoggedIn, getRole, getToken } from "./utils/auth";
 import { connectSocket } from "./utils/socket";
-import { getToken } from "./utils/auth";
 
 // Pages
 import AuthPage from "./pages/AuthPage";
@@ -28,13 +22,11 @@ import ChatPopup from "./components/ChatPopup";
 import Notification from "./components/Notification";
 
 // ─── Protected Route ────────────────────────────────
-// Checks login + role. Redirects if not authorized.
 const ProtectedRoute = ({ children, role }) => {
   if (!isLoggedIn()) {
     return <Navigate to="/auth" replace />;
   }
   if (role && getRole() !== role) {
-    // Wrong role → send to their own home
     return getRole() === "seeker"
       ? <Navigate to="/seeker/home" replace />
       : <Navigate to="/provider/dashboard" replace />;
@@ -43,7 +35,6 @@ const ProtectedRoute = ({ children, role }) => {
 };
 
 // ─── Root Redirect ───────────────────────────────────
-// / → redirect to correct home based on role
 const RootRedirect = () => {
   if (!isLoggedIn()) return <Navigate to="/auth" replace />;
   return getRole() === "provider"
@@ -53,7 +44,6 @@ const RootRedirect = () => {
 
 // ─── App ─────────────────────────────────────────────
 const App = () => {
-  // Connect socket when app loads if already logged in
   useEffect(() => {
     if (isLoggedIn()) {
       const token = getToken();
@@ -64,9 +54,7 @@ const App = () => {
   const loggedIn = isLoggedIn();
 
   return (
-    <div className="app">
-
-      {/* Global toast container */}
+    <div className="min-h-screen text-slate-800">
       <ToastContainer
         position="top-right"
         autoClose={4000}
@@ -75,26 +63,18 @@ const App = () => {
         closeOnClick
         pauseOnHover
         draggable
-        theme="light"
+        theme="colored"
         toastStyle={{
-          fontFamily: "DM Sans, sans-serif",
-          fontSize: "0.875rem",
-          borderRadius: "10px",
+          borderRadius: "12px",
+          fontFamily: "'Inter', sans-serif"
         }}
       />
 
-      {/* Notification listener — fires toasts on socket events */}
       {loggedIn && <Notification />}
-
-      {/* Floating chat popup — mounted once, visible on all pages */}
       {loggedIn && <ChatPopup />}
 
       <Routes>
-
-        {/* ── Public ───────────────────────────── */}
         <Route path="/auth" element={<AuthPage />} />
-
-        {/* ── Root redirect ─────────────────────── */}
         <Route path="/" element={<RootRedirect />} />
 
         {/* ── Seeker routes ─────────────────────── */}
@@ -143,7 +123,6 @@ const App = () => {
 
         {/* ── 404 ───────────────────────────────── */}
         <Route path="*" element={<NotFoundPage />} />
-
       </Routes>
     </div>
   );
