@@ -12,10 +12,10 @@ import Chat from "./models/chatModel.js";
 
 // ─── Import Routes ──────────────────────────────────────────────
 import providerRoutes from "./routes/providerRoutes.js";
-import seekerRoutes   from "./routes/seekerRoutes.js";
-import bookingRoutes  from "./routes/bookingRoutes.js";
-import chatRoutes     from "./routes/chatRoutes.js";
-import messageRoutes  from "./routes/messageRoutes.js";
+import seekerRoutes from "./routes/seekerRoutes.js";
+import bookingRoutes from "./routes/bookingRoutes.js";
+import chatRoutes from "./routes/chatRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 
 dotenv.config();
 await connectDB();
@@ -28,12 +28,8 @@ app.use(helmet());
 
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // Seeker frontend
-      "http://localhost:5174", // Provider frontend
-    ],
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
   })
 );
 
@@ -59,20 +55,20 @@ const apiLimiter = rateLimit({
 });
 
 app.use("/api/", apiLimiter);
-app.use("/api/providers/login",    authLimiter);
+app.use("/api/providers/login", authLimiter);
 app.use("/api/providers/register", authLimiter);
-app.use("/api/seekers/login",      authLimiter);
-app.use("/api/seekers/register",   authLimiter);
+app.use("/api/seekers/login", authLimiter);
+app.use("/api/seekers/register", authLimiter);
 
 // ─── Base Route ─────────────────────────────────────────────────
 app.get("/", (req, res) => res.send("🚀 SpotWise API is live!"));
 
 // ─── API Routes ─────────────────────────────────────────────────
 app.use("/api/providers", providerRoutes);
-app.use("/api/seekers",   seekerRoutes);
-app.use("/api/bookings",  bookingRoutes);
-app.use("/api/chats",     chatRoutes);
-app.use("/api/messages",  messageRoutes);
+app.use("/api/seekers", seekerRoutes);
+app.use("/api/bookings", bookingRoutes);
+app.use("/api/chats", chatRoutes);
+app.use("/api/messages", messageRoutes);
 
 // ─── Global Error Handler ───────────────────────────────────────
 app.use((err, req, res, next) => {
@@ -136,7 +132,7 @@ io.on("connection", (socket) => {
       if (!chat) return;
       const isMember = chat.seeker.toString() === socket.user.id || chat.provider.toString() === socket.user.id;
       if (isMember) socket.to(data.chatId).emit("typing", data);
-    } catch (_) {}
+    } catch (_) { }
   });
 
   socket.on("stop_typing", async (data) => {
@@ -145,7 +141,7 @@ io.on("connection", (socket) => {
       if (!chat) return;
       const isMember = chat.seeker.toString() === socket.user.id || chat.provider.toString() === socket.user.id;
       if (isMember) socket.to(data.chatId).emit("stop_typing", data);
-    } catch (_) {}
+    } catch (_) { }
   });
 
   // ── Disconnect ────────────────────────────────────────────────
