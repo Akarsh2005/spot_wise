@@ -103,6 +103,21 @@ const ProviderProfilePage = () => {
     );
   };
 
+  const handleLogout = async () => {
+    try {
+      await axios.put(
+        `${API}/api/providers/status`,
+        { status: "offline" },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+    } catch (err) {
+      console.error("Failed to set offline on logout", err);
+    } finally {
+      logout();
+      navigate("/auth");
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
@@ -112,7 +127,7 @@ const ProviderProfilePage = () => {
   return (
     <div className="pb-12">
 
-      <nav className="glass sticky top-0 z-50 px-6 py-4 mx-4 mt-4 mb-8 flex justify-between items-center">
+      <nav className="glass sticky top-0 z-50 px-4 md:px-6 py-4 mx-2 md:mx-4 mt-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="text-2xl font-extrabold text-indigo-600 tracking-tight">
           Spot<span className="text-slate-800">Wise</span> <span className="text-sm font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md ml-2">Provider</span>
         </div>
@@ -130,7 +145,7 @@ const ProviderProfilePage = () => {
             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
               {profile?.name?.[0]?.toUpperCase() || "P"}
             </div>
-            <button onClick={() => { logout(); navigate("/auth"); }} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
+            <button onClick={handleLogout} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
               Logout
             </button>
           </div>
@@ -139,7 +154,7 @@ const ProviderProfilePage = () => {
 
       <div className="page-container max-w-3xl">
 
-        <div className="flex justify-between items-end mb-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-8">
           <div>
             <h1 className="text-3xl font-bold text-slate-800 mb-2">My Profile</h1>
             <p className="text-slate-500">Manage your public information and pricing</p>
@@ -154,8 +169,8 @@ const ProviderProfilePage = () => {
         </div>
 
         {profile && (
-          <div className="glass-card p-6 mb-8 flex items-center gap-6 border-l-4 border-l-green-500">
-            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold shadow-lg">
+          <div className="glass-card p-6 mb-8 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 border-l-4 border-l-green-500">
+            <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-4xl font-bold shadow-lg shrink-0">
               {profile.name?.[0]?.toUpperCase()}
             </div>
             <div className="flex-1">
@@ -163,7 +178,7 @@ const ProviderProfilePage = () => {
                 {profile.name}
                 {profile.verified && <span className="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full uppercase tracking-wide flex items-center gap-1">✓ Verified</span>}
               </h2>
-              <div className="flex gap-4 mt-2 text-sm font-medium text-slate-500">
+              <div className="flex flex-wrap justify-center sm:justify-start gap-x-4 gap-y-2 mt-3 text-sm font-medium text-slate-500">
                 <span>⭐ {profile.rating?.toFixed(1) || "New"} Rating</span>
                 <span>•</span>
                 <span>{profile.reviews?.length || 0} Reviews</span>

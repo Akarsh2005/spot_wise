@@ -154,7 +154,7 @@ const SeekerHomePage = () => {
   return (
     <div className="pb-12">
       {/* Navbar - Glassmorphism */}
-      <nav className="glass sticky top-0 z-50 px-6 py-4 mx-4 mt-4 mb-8 flex justify-between items-center">
+      <nav className="glass sticky top-0 z-50 px-4 md:px-6 py-4 mx-2 md:mx-4 mt-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="text-2xl font-extrabold text-indigo-600 tracking-tight">
           Spot<span className="text-slate-800">Wise</span>
         </div>
@@ -184,7 +184,7 @@ const SeekerHomePage = () => {
           <h1 className="text-3xl font-bold text-slate-800 mb-2">Find nearby professionals</h1>
           <p className="text-slate-500 mb-6">Discover top-rated experts instantly around your location.</p>
           
-          <form onSubmit={handleSearch} className="flex gap-3">
+          <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
                 🔍
@@ -215,7 +215,7 @@ const SeekerHomePage = () => {
         </div>
 
         {/* Results Info */}
-        <div className="flex justify-between items-end mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-3 mb-6">
           <h2 className="text-2xl font-bold text-slate-800">
             {loading ? "Searching..." : `${providers.length} Provider${providers.length !== 1 ? 's' : ''} Nearby`}
           </h2>

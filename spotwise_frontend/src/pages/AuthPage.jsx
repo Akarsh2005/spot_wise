@@ -158,7 +158,7 @@ const AuthPage = () => {
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
                     <input className="input-field" type="email" name="email" onChange={handleSeekerChange} required placeholder="john@example.com" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1">Phone</label>
                       <input className="input-field" name="contactNumber" onChange={handleSeekerChange} required placeholder="10-digit number" />
@@ -184,7 +184,7 @@ const AuthPage = () => {
                     <label className="block text-sm font-semibold text-slate-700 mb-1">Email</label>
                     <input className="input-field" type="email" name="email" onChange={handleProviderChange} required placeholder="jane@example.com" />
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-1">Phone</label>
                       <input className="input-field" name="contactNumber" onChange={handleProviderChange} required placeholder="10-digit number" />

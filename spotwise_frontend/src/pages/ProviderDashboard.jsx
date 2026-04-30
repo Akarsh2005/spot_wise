@@ -155,6 +155,22 @@ const ProviderDashboard = () => {
       day: "numeric", month: "short", year: "numeric",
     });
 
+  const handleLogout = async () => {
+    try {
+      // Set status offline on logout to remove marker from map
+      await axios.put(
+        `${API}/api/providers/status`,
+        { status: "offline" },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+    } catch (err) {
+      console.error("Failed to set offline on logout", err);
+    } finally {
+      logout();
+      navigate("/auth");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -166,7 +182,7 @@ const ProviderDashboard = () => {
   return (
     <div className="pb-12">
       {/* Navbar */}
-      <nav className="glass sticky top-0 z-50 px-6 py-4 mx-4 mt-4 mb-8 flex justify-between items-center">
+      <nav className="glass sticky top-0 z-50 px-4 md:px-6 py-4 mx-2 md:mx-4 mt-4 mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="text-2xl font-extrabold text-indigo-600 tracking-tight">
           Spot<span className="text-slate-800">Wise</span> <span className="text-sm font-medium bg-indigo-100 text-indigo-700 px-2 py-1 rounded-md ml-2">Provider</span>
         </div>
@@ -182,7 +198,7 @@ const ProviderDashboard = () => {
             <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center font-bold">
               {user?.id?.[0]?.toUpperCase() || "P"}
             </div>
-            <button onClick={() => { logout(); navigate("/auth"); }} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
+            <button onClick={handleLogout} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
               Logout
             </button>
           </div>
@@ -192,13 +208,13 @@ const ProviderDashboard = () => {
       <div className="page-container max-w-5xl">
         
         {/* Header & Status Toggle */}
-        <div className="glass-card p-6 mb-8 flex flex-col md:flex-row justify-between items-center gap-4 border-l-4 border-l-indigo-500">
+        <div className="glass-card p-6 mb-8 flex flex-col sm:flex-row justify-between items-center sm:items-start text-center sm:text-left gap-6 border-l-4 border-l-indigo-500">
           <div>
             <h1 className="text-2xl font-bold text-slate-800">Command Center</h1>
             <p className="text-slate-500">Manage your incoming requests and active jobs.</p>
           </div>
           
-          <div className="flex items-center gap-4 bg-slate-50 px-6 py-3 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-center gap-4 bg-slate-50 px-6 py-3 rounded-xl border border-slate-200 w-full sm:w-auto">
             <span className="font-semibold text-slate-700">Visibility:</span>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
