@@ -63,6 +63,29 @@ const ProviderDashboard = () => {
     return () => socket.off("new-booking", onNewBooking);
   }, []);
 
+  // Auto-sync GPS Location on dashboard load
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            await axios.put(
+              `${API}/api/providers/location`,
+              { latitude: pos.coords.latitude, longitude: pos.coords.longitude },
+              { headers: { Authorization: `Bearer ${getToken()}` } }
+            );
+            console.log("GPS Location auto-synced successfully");
+          } catch (err) {
+            console.error("Auto-sync location failed:", err);
+          }
+        },
+        (err) => {
+          console.warn("Auto-sync location permission denied or failed.");
+        }
+      );
+    }
+  }, []);
+
   const toggleOnline = async (checked) => {
     const newStatus = checked ? "online" : "offline";
     try {
