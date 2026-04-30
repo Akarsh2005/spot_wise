@@ -34,9 +34,7 @@ const SeekerHomePage = () => {
       const list = res.data.providers || [];
       setProviders(list);
 
-      if (mapInstanceRef.current) {
-        addProviderMarkers(list);
-      }
+      // Map might not be ready on initial load, we handle marker sync in a separate useEffect
     } catch {
       toast.error("Failed to fetch nearby providers");
     } finally {
@@ -76,7 +74,7 @@ const SeekerHomePage = () => {
         <div style="font-family: 'Inter', sans-serif; padding: 8px; min-width: 180px;">
           <div style="font-weight: 700; font-size: 1.1rem; color: #1e293b; margin-bottom: 4px;">${p.name}</div>
           <div style="margin-bottom: 8px;">
-            ${p.skills.slice(0,2).map((s) => `<span style="background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; display: inline-block;">${s}</span>`).join("")}
+            ${(p.skills || []).slice(0,2).map((s) => `<span style="background: #e0e7ff; color: #4f46e5; padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; margin-right: 4px; display: inline-block;">${s}</span>`).join("")}
           </div>
           <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px; font-weight: 500;">
             ⭐ ${p.rating?.toFixed(1) || "New"} &nbsp;|&nbsp; ₹${hourlyRate}/hr
@@ -95,6 +93,13 @@ const SeekerHomePage = () => {
       markersRef.current.push(marker);
     });
   };
+
+  // Effect to sync markers whenever providers array or map instance changes
+  useEffect(() => {
+    if (mapInstanceRef.current && providers.length > 0) {
+      addProviderMarkers(providers);
+    }
+  }, [providers, mapInstanceRef.current]);
 
   useEffect(() => {
     if (window.tt) return;
@@ -115,9 +120,8 @@ const SeekerHomePage = () => {
         const { latitude, longitude } = pos.coords;
         setUserLocation({ latitude, longitude });
 
-        setTimeout(() => {
-          initMap(latitude, longitude);
-        }, 800);
+        // Initialize map immediately (DOM is ready)
+        initMap(latitude, longitude);
 
         fetchProviders(latitude, longitude, "");
       },
@@ -257,14 +261,14 @@ const SeekerHomePage = () => {
                 </div>
                 
                 <div className="flex flex-wrap gap-2 mb-4">
-                  {p.skills.slice(0, 3).map((s) => (
+                  {(p.skills || []).slice(0, 3).map((s) => (
                     <span key={s} className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">
                       {s}
                     </span>
                   ))}
-                  {p.skills.length > 3 && (
+                  {(p.skills || []).length > 3 && (
                     <span className="bg-slate-100 text-slate-600 text-xs font-semibold px-3 py-1 rounded-full">
-                      +{p.skills.length - 3}
+                      +{(p.skills || []).length - 3}
                     </span>
                   )}
                 </div>
