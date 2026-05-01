@@ -103,9 +103,7 @@ const AuthPage = () => {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
       <div className="glass-card w-full max-w-md p-8 relative overflow-hidden">
-        {/* Decorative blobs */}
-        <div className="absolute -top-20 -right-20 w-40 h-40 bg-indigo-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
-        <div className="absolute -bottom-20 -left-20 w-40 h-40 bg-blue-400 rounded-full mix-blend-multiply filter blur-2xl opacity-30"></div>
+
 
         <div className="relative z-10">
           <div className="text-center mb-8">

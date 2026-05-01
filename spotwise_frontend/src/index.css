@@ -91,12 +91,7 @@
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #f8fafc;
-  background-image: 
-    radial-gradient(at 40% 20%, hsla(228,100%,74%,0.15) 0px, transparent 50%),
-    radial-gradient(at 80% 0%, hsla(189,100%,56%,0.15) 0px, transparent 50%),
-    radial-gradient(at 0% 50%, hsla(355,100%,93%,0.15) 0px, transparent 50%);
-  background-attachment: fixed;
+  background-color: #f3f4f6; /* Very light grey */
   color: #0f172a;
   min-height: 100vh;
   margin: 0;
