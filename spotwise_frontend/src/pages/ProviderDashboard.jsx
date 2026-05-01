@@ -14,8 +14,10 @@ const ProviderDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [acceptedBookings, setAcceptedBookings] = useState([]);
+  const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -33,6 +35,7 @@ const ProviderDashboard = () => {
         setPendingBookings(allBookings.filter((b) => b.status === "Pending"));
         setAcceptedBookings(allBookings.filter((b) => b.status === "Accepted"));
         setIsOnline(profileRes.data.status === "online");
+        setReviews(profileRes.data.reviews || []);
       } catch {
         toast.error("Failed to load dashboard data");
       } finally {
@@ -188,21 +191,48 @@ const ProviderDashboard = () => {
         </div>
         <div className="flex items-center gap-6">
           <span className="font-semibold text-indigo-600 cursor-pointer">Dashboard</span>
-          <span 
-            className="font-medium text-slate-500 hover:text-indigo-600 transition-colors cursor-pointer"
-            onClick={() => navigate("/provider/profile")}
-          >
-            Profile & Settings
-          </span>
-          <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
-            <div className="w-8 h-8 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+          
+          <div className="relative">
+            <button 
+              onClick={() => setDropdownOpen(!dropdownOpen)}
+              className="flex items-center gap-2 focus:outline-none"
+            >
+              <div className="w-9 h-9 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center hover:bg-slate-300 transition-colors shadow-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
-            </div>
-            <button onClick={handleLogout} className="text-sm font-semibold text-slate-500 hover:text-red-500 transition-colors">
-              Logout
             </button>
+
+            {dropdownOpen && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-100 py-2 z-50 animate-in fade-in slide-in-from-top-2">
+                <button 
+                  onClick={() => navigate("/provider/profile")}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                >
+                  ⚙️ Profile & Settings
+                </button>
+                <button 
+                  onClick={() => {
+                     setDropdownOpen(false);
+                     document.getElementById("reviews-section")?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm font-medium text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                >
+                  ⭐ My Reviews
+                </button>
+                <div className="border-t border-slate-100 my-1"></div>
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full text-left px-4 py-2 text-sm font-bold text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  🚪 Logout
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </nav>
@@ -340,6 +370,40 @@ const ProviderDashboard = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* Reviews Section */}
+        <div id="reviews-section" className="mt-12 glass-card p-6 border-t-4 border-t-yellow-400">
+          <h2 className="text-xl font-bold text-slate-800 mb-6">Client Reviews ({reviews.length})</h2>
+          
+          {reviews.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-4xl mb-2 opacity-50">⭐</div>
+              <p className="text-slate-500 font-medium">No reviews yet. Complete more jobs to earn ratings!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {reviews.map((r, i) => (
+                <div key={i} className="bg-slate-50 p-5 rounded-xl border border-slate-100 hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex gap-1 text-lg">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <span key={s} className={s <= r.rating ? "text-yellow-400 drop-shadow-sm" : "text-slate-200"}>★</span>
+                      ))}
+                    </div>
+                    <span className="text-xs text-slate-400 font-bold bg-white px-3 py-1 rounded-full border border-slate-100">
+                      {formatDate(r.createdAt || new Date())}
+                    </span>
+                  </div>
+                  {r.comment ? (
+                    <p className="text-sm text-slate-600 italic leading-relaxed">"{r.comment}"</p>
+                  ) : (
+                    <p className="text-sm text-slate-400 italic">No comment provided.</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
