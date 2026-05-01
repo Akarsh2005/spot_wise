@@ -19,6 +19,7 @@ const BookingPage = () => {
     serviceType: "",
     date: "",
     time: "",
+    issueDescription: "",
   });
 
   useEffect(() => {
@@ -45,8 +46,8 @@ const BookingPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const { serviceType, date, time } = formData;
-    if (!serviceType || !date || !time) return toast.error("Please fill all fields");
+    const { serviceType, date, time, issueDescription } = formData;
+    if (!serviceType || !date || !time) return toast.error("Please fill all required fields");
 
     if (new Date(date) < new Date().setHours(0, 0, 0, 0)) {
       return toast.error("Please select a valid future date");
@@ -56,7 +57,7 @@ const BookingPage = () => {
     try {
       await axios.post(
         `${API}/api/bookings`,
-        { providerId, serviceType, date, time },
+        { providerId, serviceType, date, time, issueDescription },
         { headers: { Authorization: `Bearer ${getToken()}` } }
       );
       toast.success("Booking request sent! Waiting for provider to accept.");
@@ -176,6 +177,17 @@ const BookingPage = () => {
                   required
                 />
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Describe your issue (Optional)</label>
+              <textarea
+                className="input-field min-h-[100px] resize-y py-3"
+                name="issueDescription"
+                value={formData.issueDescription}
+                onChange={handleChange}
+                placeholder="E.g., The sink pipe is leaking heavily under the counter..."
+              ></textarea>
             </div>
 
             <div className="pt-6 border-t border-slate-100 flex gap-4">

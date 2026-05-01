@@ -353,6 +353,11 @@ const ProviderDashboard = () => {
                         {formatDate(b.date)} at {b.time}
                       </span>
                     </div>
+                    {b.issueDescription && (
+                      <div className="bg-white/50 p-3 rounded-lg border border-amber-100 text-sm text-slate-700 italic mb-2">
+                        <span className="font-semibold text-amber-700">Issue: </span>{b.issueDescription}
+                      </div>
+                    )}
                     
                     <div className="flex gap-3 mt-5 pt-4 border-t border-slate-100">
                       <button 
@@ -431,6 +436,52 @@ const ProviderDashboard = () => {
             </div>
           </div>
 
+        </div>
+
+        {/* Past Bookings Section */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-slate-800 mb-6 border-b border-slate-200 pb-2">Past Bookings History</h2>
+          
+          {completedBookings.length === 0 ? (
+            <div className="glass-card p-8 text-center text-slate-500 border-dashed border-2">
+              <p>No completed jobs yet.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {completedBookings.map((b) => (
+                <div key={b._id} className="glass-card p-5 flex flex-col md:flex-row justify-between gap-4 border-l-4 border-green-500 hover:shadow-md transition-shadow">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="font-bold text-lg text-slate-800">{b.serviceType}</h3>
+                      <span className="text-xs bg-slate-100 text-slate-600 px-2 py-1 rounded font-semibold">{formatDate(b.date)}</span>
+                      {b.isPaid && <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded font-bold">Paid</span>}
+                    </div>
+                    <p className="text-sm text-slate-500 mb-2">
+                      Client: <span className="font-semibold text-slate-700">{b.seeker?.userName || "Unknown"}</span>
+                    </p>
+                    {b.issueDescription && (
+                      <p className="text-sm text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
+                        <span className="font-semibold text-slate-800">Reported Issue:</span> {b.issueDescription}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col md:items-end justify-center min-w-[150px] gap-2 border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
+                    <div className="text-xl font-black text-emerald-600">₹{b.totalCost}</div>
+                    
+                    {b.rating ? (
+                      <div className="md:text-right mt-1 bg-yellow-50/50 p-2 rounded-lg border border-yellow-100 w-full">
+                        <div className="text-yellow-500 text-sm font-bold tracking-widest">{"★".repeat(b.rating)}{"☆".repeat(5-b.rating)}</div>
+                        {b.review && <p className="text-xs text-slate-600 italic mt-1 max-w-full md:max-w-[200px] truncate break-words">"{b.review}"</p>}
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-400 bg-slate-50 px-2 py-1 rounded font-medium mt-1 inline-block">No review yet</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Reviews Section */}

@@ -4,7 +4,7 @@ import Chat from "../models/chatModel.js";
 
 export const createBooking = async (req, res) => {
   try {
-    const { providerId, serviceType, date, time } = req.body;
+    const { providerId, serviceType, date, time, issueDescription } = req.body;
 
     if (!providerId || !serviceType || !date || !time)
       return res.status(400).json({ message: "Missing required fields" });
@@ -21,6 +21,7 @@ export const createBooking = async (req, res) => {
       serviceType,
       date: new Date(date),
       time,
+      issueDescription,
       totalCost: 0,
     });
 
@@ -36,6 +37,7 @@ export const createBooking = async (req, res) => {
         serviceType,
         date,
         time,
+        issueDescription,
       });
     }
 
