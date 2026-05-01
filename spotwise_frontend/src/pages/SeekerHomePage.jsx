@@ -17,13 +17,14 @@ const SeekerHomePage = () => {
   const [loading, setLoading] = useState(false);
   const [searchSkill, setSearchSkill] = useState("");
   const [userLocation, setUserLocation] = useState(null);
+  const [searchRadius, setSearchRadius] = useState(5); // Radius in km
 
   const user = decodeToken();
 
-  const fetchProviders = async (lat, lng, skill) => {
+  const fetchProviders = async (lat, lng, skill, radius = 5) => {
     setLoading(true);
     try {
-      const params = { latitude: lat, longitude: lng, maxDistance: 5000 };
+      const params = { latitude: lat, longitude: lng, maxDistance: radius * 1000 };
       if (skill.trim()) params.skill = skill.trim();
 
       const res = await axios.get(`${API}/api/providers/nearby`, {
@@ -123,7 +124,7 @@ const SeekerHomePage = () => {
         // Initialize map immediately (DOM is ready)
         initMap(latitude, longitude);
 
-        fetchProviders(latitude, longitude, "");
+        fetchProviders(latitude, longitude, "", searchRadius);
       },
       () => {
         toast.error("Unable to get your location. Please allow location access.");
@@ -143,7 +144,14 @@ const SeekerHomePage = () => {
   const handleSearch = (e) => {
     e.preventDefault();
     if (!userLocation) return toast.error("Waiting for your location...");
-    fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill);
+    fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill, searchRadius);
+  };
+
+  const expandRadius = () => {
+    if (!userLocation) return;
+    const newRadius = searchRadius + 5;
+    setSearchRadius(newRadius);
+    fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill, newRadius);
   };
 
   const handleLogout = () => {
@@ -222,9 +230,18 @@ const SeekerHomePage = () => {
             {loading ? "Searching..." : `${providers.length} Provider${providers.length !== 1 ? 's' : ''} Nearby`}
           </h2>
           {userLocation && (
-            <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">
-              📍 Within 5km radius
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
+                📍 Within {searchRadius}km radius
+              </span>
+              <button 
+                onClick={expandRadius}
+                disabled={loading}
+                className="text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded-full transition-all shadow-sm shadow-indigo-200 disabled:opacity-50"
+              >
+                + Expand Radius (5km)
+              </button>
+            </div>
           )}
         </div>
 
