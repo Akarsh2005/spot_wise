@@ -20,6 +20,10 @@ const ProviderDashboard = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // Invoice Modal State
+  const [invoiceModal, setInvoiceModal] = useState({ isOpen: false, bookingId: null });
+  const [invoiceData, setInvoiceData] = useState({ hoursWorked: "", extras: [] });
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -106,12 +110,12 @@ const ProviderDashboard = () => {
     }
   };
 
-  const handleBookingAction = async (bookingId, status, hoursWorked = undefined, extraCosts = undefined) => {
+  const handleBookingAction = async (bookingId, status, hoursWorked = undefined, extrasList = undefined) => {
     setActionLoading(bookingId);
     try {
       const payload = { status };
       if (hoursWorked !== undefined) payload.hoursWorked = hoursWorked;
-      if (extraCosts !== undefined) payload.extraCosts = extraCosts;
+      if (extrasList !== undefined) payload.extrasList = extrasList;
 
       await axios.put(
         `${API}/api/bookings/provider/${bookingId}`,
@@ -140,18 +144,35 @@ const ProviderDashboard = () => {
     }
   };
 
-  const handleComplete = (bookingId) => {
-    const hoursStr = window.prompt("How many hours did you work? (Enter 0 if flat rate):");
-    if (hoursStr === null) return;
-    const hoursWorked = parseFloat(hoursStr);
-    if (isNaN(hoursWorked) || hoursWorked < 0) return toast.error("Please enter valid hours.");
+  const handleOpenInvoiceModal = (bookingId) => {
+    setInvoiceModal({ isOpen: true, bookingId });
+    setInvoiceData({ hoursWorked: "", extras: [] });
+  };
 
-    const extraStr = window.prompt("Any extra costs for materials? (₹) (Enter 0 if none):");
-    if (extraStr === null) return;
-    const extraCosts = parseFloat(extraStr);
-    if (isNaN(extraCosts) || extraCosts < 0) return toast.error("Please enter a valid extra cost.");
+  const handleAddExtra = () => {
+    setInvoiceData({ ...invoiceData, extras: [...invoiceData.extras, { name: "", price: "" }] });
+  };
 
-    handleBookingAction(bookingId, "Payment Pending", hoursWorked, extraCosts);
+  const handleExtraChange = (index, field, value) => {
+    const updatedExtras = [...invoiceData.extras];
+    updatedExtras[index][field] = value;
+    setInvoiceData({ ...invoiceData, extras: updatedExtras });
+  };
+
+  const handleRemoveExtra = (index) => {
+    setInvoiceData({ ...invoiceData, extras: invoiceData.extras.filter((_, i) => i !== index) });
+  };
+
+  const submitInvoice = () => {
+    const hoursWorked = parseFloat(invoiceData.hoursWorked) || 0;
+    if (hoursWorked < 0) return toast.error("Invalid hours");
+
+    const validExtras = invoiceData.extras
+      .filter(ex => ex.name.trim() !== "" && ex.price !== "")
+      .map(ex => ({ name: ex.name.trim(), price: parseFloat(ex.price) || 0 }));
+
+    handleBookingAction(invoiceModal.bookingId, "Payment Pending", hoursWorked, validExtras);
+    setInvoiceModal({ isOpen: false, bookingId: null });
   };
 
   const openChat = (seekerId) => {
@@ -397,7 +418,7 @@ const ProviderDashboard = () => {
                         💬 Open Chat
                       </button>
                       <button 
-                        onClick={() => handleComplete(b._id)}
+                        onClick={() => handleOpenInvoiceModal(b._id)}
                         disabled={actionLoading === b._id}
                         className="flex-1 border border-green-500 text-green-600 hover:bg-green-50 font-medium py-2 rounded-lg transition-colors"
                       >
@@ -445,6 +466,80 @@ const ProviderDashboard = () => {
             </div>
           )}
         </div>
+        {/* Invoice Modal */}
+        {invoiceModal.isOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in-95">
+              <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                <h3 className="text-xl font-bold text-slate-800">Generate Invoice</h3>
+                <button onClick={() => setInvoiceModal({ isOpen: false, bookingId: null })} className="text-slate-400 hover:text-slate-600">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+              </div>
+              <div className="p-6 space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Hours Worked</label>
+                  <input 
+                    type="number" 
+                    min="0"
+                    step="0.5"
+                    value={invoiceData.hoursWorked}
+                    onChange={(e) => setInvoiceData({ ...invoiceData, hoursWorked: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-700 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                    placeholder="e.g. 2.5 (Enter 0 if flat rate)"
+                  />
+                </div>
+
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-semibold text-slate-700">Extra Materials/Usage</label>
+                    <button onClick={handleAddExtra} className="text-sm font-bold text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                      <span>+</span> Add Extra
+                    </button>
+                  </div>
+                  
+                  {invoiceData.extras.length === 0 ? (
+                    <p className="text-sm text-slate-400 italic">No extra costs added.</p>
+                  ) : (
+                    <div className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                      {invoiceData.extras.map((extra, index) => (
+                        <div key={index} className="flex gap-2 items-start">
+                          <input 
+                            type="text" 
+                            value={extra.name}
+                            onChange={(e) => handleExtraChange(index, "name", e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                            placeholder="e.g. PVC Pipe"
+                          />
+                          <input 
+                            type="number" 
+                            min="0"
+                            value={extra.price}
+                            onChange={(e) => handleExtraChange(index, "price", e.target.value)}
+                            className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none"
+                            placeholder="₹ Price"
+                          />
+                          <button onClick={() => handleRemoveExtra(index)} className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-end gap-3">
+                <button onClick={() => setInvoiceModal({ isOpen: false, bookingId: null })} className="px-5 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200 rounded-xl transition-colors">
+                  Cancel
+                </button>
+                <button onClick={submitInvoice} className="px-6 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors shadow-md shadow-indigo-200">
+                  Send Invoice
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
     </div>
   );

@@ -13,6 +13,10 @@ const bookingSchema = new mongoose.Schema({
   },
   hoursWorked: { type: Number, default: 0 },
   extraCosts: { type: Number, default: 0 },
+  extrasList: [{
+    name: { type: String },
+    price: { type: Number }
+  }],
   totalCost: { type: Number, default: 0 }, // Final calculated cost
   isPaid: { type: Boolean, default: false },
   rating: { type: Number },

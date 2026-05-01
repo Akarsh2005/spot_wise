@@ -289,10 +289,19 @@ const MyBookingsPage = () => {
                             <p className="text-sm text-emerald-800 font-semibold">Invoice Received</p>
                             <p className="text-2xl font-black text-emerald-600">₹{booking.totalCost}</p>
                             {(booking.hoursWorked > 0 || booking.extraCosts > 0) && (
-                               <p className="text-xs text-emerald-700 mt-1">
-                                 {booking.hoursWorked > 0 ? `${booking.hoursWorked} hours logged. ` : ''}
-                                 {booking.extraCosts > 0 ? `₹${booking.extraCosts} extra costs.` : ''}
-                               </p>
+                               <div className="mt-2 text-sm text-emerald-800 bg-emerald-100/50 p-3 rounded-lg w-full max-w-xs space-y-1 border border-emerald-100">
+                                 {booking.hoursWorked > 0 && (
+                                   <div className="flex justify-between"><span>Hours Logged:</span> <span className="font-bold">{booking.hoursWorked} hrs</span></div>
+                                 )}
+                                 {booking.extrasList?.map((extra, i) => (
+                                    <div key={i} className="flex justify-between text-xs">
+                                      <span className="truncate pr-2">{extra.name || "Extra Material"}:</span> <span className="font-bold">₹{extra.price}</span>
+                                    </div>
+                                 ))}
+                                 {(!booking.extrasList || booking.extrasList.length === 0) && booking.extraCosts > 0 && (
+                                    <div className="flex justify-between"><span>Extra Costs:</span> <span className="font-bold">₹{booking.extraCosts}</span></div>
+                                 )}
+                               </div>
                             )}
                           </div>
                           <button 

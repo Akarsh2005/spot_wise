@@ -86,7 +86,7 @@ export const getProviderBookings = async (req, res) => {
 export const updateBookingStatus = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { status, hoursWorked, extraCosts } = req.body;
+    const { status, hoursWorked, extrasList } = req.body;
 
     const validStatuses = ["Accepted", "Payment Pending", "Completed", "Rejected"];
     if (status && !validStatuses.includes(status))
@@ -121,7 +121,14 @@ export const updateBookingStatus = async (req, res) => {
         const hourlyRate = providerObj.pricing?.hourlyRate || 0;
         
         booking.hoursWorked = Number(hoursWorked) || 0;
-        booking.extraCosts = Number(extraCosts) || 0;
+        
+        let totalExtra = 0;
+        if (Array.isArray(extrasList)) {
+          booking.extrasList = extrasList;
+          totalExtra = extrasList.reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+        }
+        booking.extraCosts = totalExtra;
+        
         booking.totalCost = baseCharge + (hourlyRate * booking.hoursWorked) + booking.extraCosts;
       }
     }
