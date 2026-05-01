@@ -209,7 +209,7 @@ const MyBookingsPage = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="flex flex-col gap-6">
             {filtered.map((booking) => (
               <div key={booking._id} className="glass-card p-6 flex flex-col hover:shadow-lg transition-shadow border-t-4 border-transparent hover:border-indigo-500">
                 
