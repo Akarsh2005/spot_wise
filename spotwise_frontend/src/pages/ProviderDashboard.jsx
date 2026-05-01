@@ -14,6 +14,7 @@ const ProviderDashboard = () => {
   const [isOnline, setIsOnline] = useState(false);
   const [pendingBookings, setPendingBookings] = useState([]);
   const [acceptedBookings, setAcceptedBookings] = useState([]);
+  const [completedBookings, setCompletedBookings] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
@@ -34,6 +35,7 @@ const ProviderDashboard = () => {
         const allBookings = bookingsRes.data.bookings || bookingsRes.data;
         setPendingBookings(allBookings.filter((b) => b.status === "Pending"));
         setAcceptedBookings(allBookings.filter((b) => b.status === "Accepted"));
+        setCompletedBookings(allBookings.filter((b) => b.status === "Completed"));
         setIsOnline(profileRes.data.status === "online");
         setReviews(profileRes.data.reviews || []);
       } catch {
@@ -104,11 +106,12 @@ const ProviderDashboard = () => {
     }
   };
 
-  const handleBookingAction = async (bookingId, status, totalCost = undefined) => {
+  const handleBookingAction = async (bookingId, status, hoursWorked = undefined, extraCosts = undefined) => {
     setActionLoading(bookingId);
     try {
       const payload = { status };
-      if (totalCost !== undefined) payload.totalCost = totalCost;
+      if (hoursWorked !== undefined) payload.hoursWorked = hoursWorked;
+      if (extraCosts !== undefined) payload.extraCosts = extraCosts;
 
       await axios.put(
         `${API}/api/bookings/provider/${bookingId}`,
@@ -124,9 +127,11 @@ const ProviderDashboard = () => {
       } else if (status === "Rejected") {
         setPendingBookings((prev) => prev.filter((b) => b._id !== bookingId));
         toast.info("Booking rejected.");
-      } else if (status === "Completed") {
+      } else if (status === "Payment Pending") {
+        const found = acceptedBookings.find((b) => b._id === bookingId);
         setAcceptedBookings((prev) => prev.filter((b) => b._id !== bookingId));
-        toast.success("Job marked as Completed!");
+        if (found) setCompletedBookings((prev) => [{ ...found, status }, ...prev]);
+        toast.success("Invoice sent! Waiting for seeker to pay.");
       }
     } catch (err) {
       toast.error("Action failed");
@@ -136,15 +141,17 @@ const ProviderDashboard = () => {
   };
 
   const handleComplete = (bookingId) => {
-    const cost = window.prompt("Enter the final total cost for this job (₹):");
-    if (cost === null) return; // User cancelled prompt
-    
-    const parsedCost = parseFloat(cost);
-    if (isNaN(parsedCost) || parsedCost < 0) {
-      return toast.error("Please enter a valid amount.");
-    }
-    
-    handleBookingAction(bookingId, "Completed", parsedCost);
+    const hoursStr = window.prompt("How many hours did you work? (Enter 0 if flat rate):");
+    if (hoursStr === null) return;
+    const hoursWorked = parseFloat(hoursStr);
+    if (isNaN(hoursWorked) || hoursWorked < 0) return toast.error("Please enter valid hours.");
+
+    const extraStr = window.prompt("Any extra costs for materials? (₹) (Enter 0 if none):");
+    if (extraStr === null) return;
+    const extraCosts = parseFloat(extraStr);
+    if (isNaN(extraCosts) || extraCosts < 0) return toast.error("Please enter a valid extra cost.");
+
+    handleBookingAction(bookingId, "Payment Pending", hoursWorked, extraCosts);
   };
 
   const openChat = (seekerId) => {
@@ -263,6 +270,39 @@ const ProviderDashboard = () => {
           </div>
         </div>
 
+        {/* Stats Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+          <div className="glass-card p-6 flex items-center gap-4 border-l-4 border-l-green-500 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-2xl">
+              💰
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Total Earnings</p>
+              <h3 className="text-2xl font-black text-slate-800">₹{completedBookings.reduce((sum, b) => sum + (b.totalCost || 0), 0)}</h3>
+            </div>
+          </div>
+          <div className="glass-card p-6 flex items-center gap-4 border-l-4 border-l-blue-500 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-2xl">
+              🏆
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Jobs Completed</p>
+              <h3 className="text-2xl font-black text-slate-800">{completedBookings.length}</h3>
+            </div>
+          </div>
+          <div className="glass-card p-6 flex items-center gap-4 border-l-4 border-l-purple-500 hover:shadow-md transition-shadow">
+            <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-2xl">
+              ⭐
+            </div>
+            <div>
+              <p className="text-sm text-slate-500 font-bold uppercase tracking-wider">Average Rating</p>
+              <h3 className="text-2xl font-black text-slate-800">
+                {reviews.length > 0 ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1) : "New"}
+              </h3>
+            </div>
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* Pending Requests Column */}
@@ -361,7 +401,7 @@ const ProviderDashboard = () => {
                         disabled={actionLoading === b._id}
                         className="flex-1 border border-green-500 text-green-600 hover:bg-green-50 font-medium py-2 rounded-lg transition-colors"
                       >
-                        {actionLoading === b._id ? "..." : "✓ Mark Complete"}
+                        {actionLoading === b._id ? "..." : "✓ Generate Invoice"}
                       </button>
                     </div>
                   </div>

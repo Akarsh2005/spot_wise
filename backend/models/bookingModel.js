@@ -8,10 +8,13 @@ const bookingSchema = new mongoose.Schema({
   time: { type: String, required: true },
   status: { 
     type: String, 
-    enum: ["Pending", "Accepted", "Completed", "Rejected"], 
+    enum: ["Pending", "Accepted", "Payment Pending", "Completed", "Rejected"], 
     default: "Pending" 
   },
-  totalCost: { type: Number, default: 0 }, // Final calculated cost based on service + hourly
+  hoursWorked: { type: Number, default: 0 },
+  extraCosts: { type: Number, default: 0 },
+  totalCost: { type: Number, default: 0 }, // Final calculated cost
+  isPaid: { type: Boolean, default: false },
   rating: { type: Number },
   review: { type: String }
 }, { timestamps: true });

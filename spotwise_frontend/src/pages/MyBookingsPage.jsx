@@ -7,7 +7,7 @@ import { getSocket } from "../utils/socket";
 
 const API = import.meta.env.VITE_API_URL || "http://localhost:5001";
 
-const TABS = ["All", "Pending", "Accepted", "In Progress", "Completed", "Cancelled", "Rejected"];
+const TABS = ["All", "Pending", "Accepted", "In Progress", "Payment Pending", "Completed", "Cancelled", "Rejected"];
 
 const MyBookingsPage = () => {
   const navigate = useNavigate();
@@ -101,6 +101,27 @@ const MyBookingsPage = () => {
     window.dispatchEvent(new CustomEvent("open-chat-with", { detail: { userId: providerId } }));
   };
 
+  const handlePayment = async (bookingId) => {
+    const btn = document.getElementById(`pay-btn-${bookingId}`);
+    if (btn) btn.innerHTML = '<span class="animate-spin inline-block">↻</span> Processing...';
+    
+    try {
+      await axios.put(
+        `${API}/api/bookings/seeker/pay/${bookingId}`,
+        { status: "Completed" },
+        { headers: { Authorization: `Bearer ${getToken()}` } }
+      );
+      
+      setBookings((prev) =>
+        prev.map((b) => b._id === bookingId ? { ...b, status: "Completed", isPaid: true } : b)
+      );
+      toast.success("Payment successful! Thank you.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Payment failed");
+      if (btn) btn.innerText = 'Pay Now';
+    }
+  };
+
   const filtered = activeTab === "All" ? bookings : bookings.filter((b) => b.status === activeTab);
   const formatDate = (d) => new Date(d).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
 
@@ -109,6 +130,7 @@ const MyBookingsPage = () => {
       case 'Pending': return 'bg-amber-100 text-amber-700 border-amber-200';
       case 'Accepted': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
       case 'In Progress': return 'bg-blue-100 text-blue-700 border-blue-200';
+      case 'Payment Pending': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case 'Completed': return 'bg-green-100 text-green-700 border-green-200';
       case 'Cancelled': 
       case 'Rejected': return 'bg-red-100 text-red-700 border-red-200';
@@ -228,9 +250,6 @@ const MyBookingsPage = () => {
                 <div className="flex flex-wrap gap-3 mb-4 text-sm text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                   <div className="flex items-center gap-1"><span className="text-slate-400">📅</span> {formatDate(booking.date)}</div>
                   <div className="flex items-center gap-1"><span className="text-slate-400">⏰</span> {booking.time}</div>
-                  {booking.status === "Completed" && booking.totalCost > 0 && (
-                    <div className="flex items-center gap-1 font-bold text-slate-800"><span className="text-slate-400">💰</span> ₹{booking.totalCost}</div>
-                  )}
                 </div>
 
                 {booking.reason && (
@@ -254,11 +273,48 @@ const MyBookingsPage = () => {
                   {/* Chat Button */}
                   {["Accepted", "In Progress"].includes(booking.status) && booking.provider?._id && (
                     <button 
-                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      className="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2 rounded-lg transition-colors flex items-center justify-center gap-2 mb-4"
                       onClick={() => openChat(booking.provider._id)}
                     >
                       💬 Open Chat
                     </button>
+                  )}
+
+                  {/* Payment Section */}
+                  {(booking.status === "Payment Pending" || booking.status === "Completed") && booking.totalCost > 0 && (
+                    <div className="mb-4">
+                      {booking.status === "Payment Pending" ? (
+                        <div className="bg-emerald-50 p-4 rounded-xl border border-emerald-100 flex flex-col sm:flex-row justify-between items-center gap-3">
+                          <div>
+                            <p className="text-sm text-emerald-800 font-semibold">Invoice Received</p>
+                            <p className="text-2xl font-black text-emerald-600">₹{booking.totalCost}</p>
+                            {(booking.hoursWorked > 0 || booking.extraCosts > 0) && (
+                               <p className="text-xs text-emerald-700 mt-1">
+                                 {booking.hoursWorked > 0 ? `${booking.hoursWorked} hours logged. ` : ''}
+                                 {booking.extraCosts > 0 ? `₹${booking.extraCosts} extra costs.` : ''}
+                               </p>
+                            )}
+                          </div>
+                          <button 
+                            id={`pay-btn-${booking._id}`}
+                            onClick={() => handlePayment(booking._id)}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-2 px-6 rounded-lg transition-colors shadow-md shadow-emerald-200 w-full sm:w-auto"
+                          >
+                            Pay Now
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-lg">✓</div>
+                            <div>
+                              <p className="text-sm font-bold text-slate-700">Paid Successfully</p>
+                              <p className="text-xs text-slate-500">₹{booking.totalCost}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   )}
 
                   {/* Rating / Review Section */}

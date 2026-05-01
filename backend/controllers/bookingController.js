@@ -86,20 +86,45 @@ export const getProviderBookings = async (req, res) => {
 export const updateBookingStatus = async (req, res) => {
   try {
     const { bookingId } = req.params;
-    const { status, totalCost } = req.body;
+    const { status, hoursWorked, extraCosts } = req.body;
 
-    const validStatuses = ["Accepted", "Completed", "Rejected"];
+    const validStatuses = ["Accepted", "Payment Pending", "Completed", "Rejected"];
     if (status && !validStatuses.includes(status))
       return res.status(400).json({ message: "Invalid status value" });
 
     const booking = await Booking.findById(bookingId);
     if (!booking) return res.status(404).json({ message: "Booking not found" });
 
-    if (booking.provider.toString() !== req.user.id)
-      return res.status(403).json({ message: "Unauthorized: not your booking" });
+    const isProvider = booking.provider.toString() === req.user.id;
+    const isSeeker = booking.seeker.toString() === req.user.id;
 
-    if (status) booking.status = status;
-    if (totalCost !== undefined) booking.totalCost = totalCost;
+    if (!isProvider && !isSeeker)
+      return res.status(403).json({ message: "Unauthorized" });
+
+    // Seeker can only pay an invoice (move from Payment Pending to Completed)
+    if (isSeeker) {
+      if (status === "Completed" && booking.status === "Payment Pending") {
+        booking.status = "Completed";
+        booking.isPaid = true;
+      } else {
+        return res.status(400).json({ message: "Seekers can only approve and pay pending invoices" });
+      }
+    } 
+    // Provider updates
+    else if (isProvider) {
+      if (status) booking.status = status;
+
+      // If generating invoice, calculate total cost based on provider's pricing
+      if (status === "Payment Pending") {
+        const providerObj = await Provider.findById(booking.provider);
+        const baseCharge = providerObj.pricing?.serviceCharge || 0;
+        const hourlyRate = providerObj.pricing?.hourlyRate || 0;
+        
+        booking.hoursWorked = Number(hoursWorked) || 0;
+        booking.extraCosts = Number(extraCosts) || 0;
+        booking.totalCost = baseCharge + (hourlyRate * booking.hoursWorked) + booking.extraCosts;
+      }
+    }
 
     await booking.save();
 

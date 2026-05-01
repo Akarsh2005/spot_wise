@@ -16,6 +16,7 @@ const router = express.Router();
 router.post("/",                       authMiddleware, requireRole("seeker"), createBooking);
 router.get("/seeker",                  authMiddleware, requireRole("seeker"), getSeekerBookings);
 router.put("/seeker/cancel/:bookingId",authMiddleware, requireRole("seeker"), cancelBooking);
+router.put("/seeker/pay/:bookingId",   authMiddleware, requireRole("seeker"), updateBookingStatus);
 router.put("/review/:bookingId",       authMiddleware, requireRole("seeker"), submitReview);
 
 // ─── Provider-only Routes ───────────────────────────────────────
