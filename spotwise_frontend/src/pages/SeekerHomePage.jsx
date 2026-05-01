@@ -154,6 +154,13 @@ const SeekerHomePage = () => {
     fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill, newRadius);
   };
 
+  const reduceRadius = () => {
+    if (!userLocation || searchRadius <= 5) return;
+    const newRadius = searchRadius - 5;
+    setSearchRadius(newRadius);
+    fetchProviders(userLocation.latitude, userLocation.longitude, searchSkill, newRadius);
+  };
+
   const handleLogout = () => {
     logout();
     navigate("/auth");
@@ -230,16 +237,32 @@ const SeekerHomePage = () => {
             {loading ? "Searching..." : `${providers.length} Provider${providers.length !== 1 ? 's' : ''} Nearby`}
           </h2>
           {userLocation && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-100">
-                📍 Within {searchRadius}km radius
-              </span>
+            <div className="flex items-center bg-white border border-slate-200 rounded-full shadow-sm p-1">
+              <button 
+                onClick={reduceRadius}
+                disabled={searchRadius <= 5 || loading}
+                className="w-8 h-8 flex items-center justify-center rounded-full text-slate-500 hover:bg-slate-100 disabled:opacity-30 transition-colors"
+                title="Decrease Radius"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M20 12H4" />
+                </svg>
+              </button>
+              
+              <div className="px-3 text-sm font-bold text-slate-700 w-28 text-center flex items-center justify-center gap-1.5 border-x border-slate-100 mx-1">
+                <span>📍</span>
+                <span>{searchRadius} km</span>
+              </div>
+              
               <button 
                 onClick={expandRadius}
                 disabled={loading}
-                className="text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1 rounded-full transition-all shadow-sm shadow-indigo-200 disabled:opacity-50"
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 disabled:opacity-50 transition-colors"
+                title="Increase Radius"
               >
-                + Expand Radius (5km)
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                </svg>
               </button>
             </div>
           )}
