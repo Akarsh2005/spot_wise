@@ -204,10 +204,13 @@ const SeekerHomePage = () => {
           <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                🔍
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
               </div>
               <input
-                className="input-field pl-12 h-14 text-lg shadow-sm"
+                className="input-field h-14 text-lg shadow-sm"
+                style={{ paddingLeft: '3rem' }}
                 type="text"
                 placeholder="Search by service... e.g. Plumber, Electrician"
                 value={searchSkill}

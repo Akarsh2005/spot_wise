@@ -11,7 +11,9 @@ const bookingSchema = new mongoose.Schema({
     enum: ["Pending", "Accepted", "Completed", "Rejected"], 
     default: "Pending" 
   },
-  totalCost: { type: Number, default: 0 } // Final calculated cost based on service + hourly
+  totalCost: { type: Number, default: 0 }, // Final calculated cost based on service + hourly
+  rating: { type: Number },
+  review: { type: String }
 }, { timestamps: true });
 
 export default mongoose.model("Booking", bookingSchema);

@@ -27,8 +27,10 @@ const providerSchema = new mongoose.Schema({
   rating: { type: Number, default: 0 },
   reviews: [{
     seeker: { type: mongoose.Schema.Types.ObjectId, ref: "Seeker" },
+    booking: { type: mongoose.Schema.Types.ObjectId, ref: "Booking" },
     rating: { type: Number, required: true, min: 1, max: 5 },
-    comment: { type: String }
+    comment: { type: String },
+    createdAt: { type: Date, default: Date.now }
   }]
 }, { timestamps: true });
 

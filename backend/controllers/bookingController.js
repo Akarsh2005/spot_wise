@@ -221,13 +221,18 @@ export const submitReview = async (req, res) => {
     const provider = await Provider.findById(booking.provider);
     if (!provider) return res.status(404).json({ message: "Provider not found" });
 
-    // Check if seeker already reviewed this booking
-    const alreadyReviewed = provider.reviews.find(r => r.seeker.toString() === req.user.id);
-    if (alreadyReviewed)
-      return res.status(400).json({ message: "Review already submitted for this provider" });
+    // Check if booking is already reviewed
+    if (booking.rating)
+      return res.status(400).json({ message: "Review already submitted for this booking" });
+
+    // Save review data to the booking
+    booking.rating = rating;
+    booking.review = review;
+    await booking.save();
 
     provider.reviews.push({
       seeker: req.user.id,
+      booking: booking._id,
       rating,
       comment: review,
     });
