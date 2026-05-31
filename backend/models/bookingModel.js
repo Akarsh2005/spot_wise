@@ -7,10 +7,10 @@ const bookingSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   time: { type: String, required: true },
   issueDescription: { type: String },
-  status: { 
-    type: String, 
-    enum: ["Pending", "Accepted", "Payment Pending", "Completed", "Rejected"], 
-    default: "Pending" 
+  status: {
+    type: String,
+    enum: ["Pending", "Accepted", "Payment Pending", "Completed", "Rejected"],
+    default: "Pending"
   },
   hoursWorked: { type: Number, default: 0 },
   extraCosts: { type: Number, default: 0 },

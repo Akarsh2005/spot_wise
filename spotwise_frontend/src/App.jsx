@@ -20,6 +20,7 @@ import NotFoundPage from "./pages/NotFoundPage";
 // Components
 import ChatPopup from "./components/ChatPopup";
 import Notification from "./components/Notification";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 
 // ─── Protected Route ────────────────────────────────
 const ProtectedRoute = ({ children, role }) => {
@@ -72,6 +73,7 @@ const App = () => {
 
       {loggedIn && <Notification />}
       {loggedIn && <ChatPopup />}
+      <ThemeSwitcher />
 
       <Routes>
         <Route path="/auth" element={<AuthPage />} />

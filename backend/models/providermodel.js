@@ -37,10 +37,9 @@ const providerSchema = new mongoose.Schema({
 providerSchema.index({ location: "2dsphere" });
 
 // 🔐 Hash password before saving
-providerSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) return next();
+providerSchema.pre("save", async function () {
+  if (!this.isModified("password")) return;
   this.password = await bcrypt.hash(this.password, 10);
-  next();
 });
 
 // 🔑 Compare password

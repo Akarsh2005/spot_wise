@@ -12,22 +12,22 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@google-cloud/dialogflow": "^7.3.0",
+    "@google-cloud/dialogflow": "^7.6.1",
     "bcryptjs": "^3.0.3",
     "body-parser": "^2.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
-    "dotenv": "^17.3.1",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-async-handler": "^1.2.0",
     "express-rate-limit": "^8.3.1",
     "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.3",
-    "mongoose": "^8.23.0",
+    "mongoose": "^9.6.2",
     "multer": "^2.0.2",
     "node-cron": "^4.2.1",
     "socket.io": "^4.8.3",
-    "stripe": "^19.1.0"
+    "stripe": "^22.1.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"

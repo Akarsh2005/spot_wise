@@ -1,5 +1,5 @@
 // utils/auth.js
-import jwtDecode from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import { disconnectSocket } from "./socket";
 
 const TOKEN_KEY = "spotwise_token";
